@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.proyectoPPI.proyectodb.controllers.CursosControllerTest
+-------------------------------------------------------------------------------
+Tests run: 15, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.332 s -- in com.proyectoPPI.proyectodb.controllers.CursosControllerTest
