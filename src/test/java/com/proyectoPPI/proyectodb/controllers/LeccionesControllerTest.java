@@ -60,7 +60,7 @@ class LeccionesControllerTest {
         Map<String, Object> leccion = new HashMap<>();
         leccion.put("LeccionID", 1);
         leccion.put("Preguntas", null);
-        when(jdbcTemplate.queryForList(anyString(), eq(2))).thenReturn(List.of(leccion));
+        when(jdbcTemplate.queryForList(anyString(), eq(1))).thenReturn(List.of(leccion));
 
         ResponseEntity<?> respuesta = controller.getLeccionById(1);
 
