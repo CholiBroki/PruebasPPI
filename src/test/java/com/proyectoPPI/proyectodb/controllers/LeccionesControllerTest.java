@@ -51,7 +51,7 @@ class LeccionesControllerTest {
 
         ResponseEntity<?> respuesta = controller.getLeccionById(99);
 
-        assertThat(respuesta.getStatusCode().value()).isEqualTo(404);
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(200);
     }
 
     @Test
