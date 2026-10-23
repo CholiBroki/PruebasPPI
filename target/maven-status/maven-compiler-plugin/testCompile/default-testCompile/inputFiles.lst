@@ -1,8 +1,8 @@
-C:\Users\Usuario\Downloads\proyectodb-con-pruebas\src\test\java\com\proyectoPPI\proyectodb\controllers\AuthControllerTest.java
-C:\Users\Usuario\Downloads\proyectodb-con-pruebas\src\test\java\com\proyectoPPI\proyectodb\controllers\CursosControllerTest.java
-C:\Users\Usuario\Downloads\proyectodb-con-pruebas\src\test\java\com\proyectoPPI\proyectodb\controllers\LeccionesControllerTest.java
-C:\Users\Usuario\Downloads\proyectodb-con-pruebas\src\test\java\com\proyectoPPI\proyectodb\controllers\UsuariosControllerTest.java
-C:\Users\Usuario\Downloads\proyectodb-con-pruebas\src\test\java\com\proyectoPPI\proyectodb\db\DbTest.java
-C:\Users\Usuario\Downloads\proyectodb-con-pruebas\src\test\java\com\proyectoPPI\proyectodb\ProyectodbApplicationTests.java
-C:\Users\Usuario\Downloads\proyectodb-con-pruebas\src\test\java\com\proyectoPPI\proyectodb\security\AuthInterceptorTest.java
-C:\Users\Usuario\Downloads\proyectodb-con-pruebas\src\test\java\com\proyectoPPI\proyectodb\security\JwtUtilTest.java
+/workspaces/PruebasPPI/src/test/java/com/proyectoPPI/proyectodb/ProyectodbApplicationTests.java
+/workspaces/PruebasPPI/src/test/java/com/proyectoPPI/proyectodb/controllers/AuthControllerTest.java
+/workspaces/PruebasPPI/src/test/java/com/proyectoPPI/proyectodb/controllers/CursosControllerTest.java
+/workspaces/PruebasPPI/src/test/java/com/proyectoPPI/proyectodb/controllers/LeccionesControllerTest.java
+/workspaces/PruebasPPI/src/test/java/com/proyectoPPI/proyectodb/controllers/UsuariosControllerTest.java
+/workspaces/PruebasPPI/src/test/java/com/proyectoPPI/proyectodb/db/DbTest.java
+/workspaces/PruebasPPI/src/test/java/com/proyectoPPI/proyectodb/security/AuthInterceptorTest.java
+/workspaces/PruebasPPI/src/test/java/com/proyectoPPI/proyectodb/security/JwtUtilTest.java
