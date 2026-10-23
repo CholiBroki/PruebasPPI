@@ -1,0 +1,59 @@
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "DevGenius_2026!"
+    ports:
+      - "1433:1433"
+      - "4000:4000"   # puerto de la app (comparte la red de este contenedor)
+    volumes:
+      - sqldata:/var/opt/mssql
+      - ./db:/scripts:ro
+    # Arranca SQL Server y crea la base DESDE ADENTRO del mismo contenedor (por localhost)
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        /opt/mssql/bin/sqlservr &
+        PID=$$!
+        trap 'kill -TERM $$PID' TERM INT
+        SQLCMD="/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P $$MSSQL_SA_PASSWORD"
+        for i in $$(seq 1 60); do
+          $$SQLCMD -Q "SELECT 1" >/dev/null 2>&1 && break
+          sleep 2
+        done
+        EXISTE=$$($$SQLCMD -h -1 -W -Q "SET NOCOUNT ON; SELECT CASE WHEN DB_ID('DevGeniusDB') IS NULL THEN 0 ELSE 1 END" | tr -d '[:space:]')
+        if [ "$$EXISTE" = "0" ]; then
+          $$SQLCMD -f 65001 -b -i /scripts/DevGeniusDB.sql && echo ">>> Base de datos DevGeniusDB creada"
+        elif [ "$$EXISTE" = "1" ]; then
+          echo ">>> DevGeniusDB ya existe, no se toca"
+        else
+          echo ">>> ERROR consultando SQL Server (respuesta: $$EXISTE)"
+        fi
+        wait $$PID
+    healthcheck:
+      # Sano solo cuando la base DevGeniusDB ya existe
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P 'DevGenius_2026!' -b -Q \"IF DB_ID('DevGeniusDB') IS NULL RAISERROR('no',16,1)\""]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+
+  app:
+    build: .
+    # Comparte la red del contenedor db: se conectan por localhost
+    network_mode: "service:db"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SERVER: localhost
+      DB_PORT: "1433"
+      DATABASE: DevGeniusDB
+      DB_USER: sa
+      DB_PASSWORD: "DevGenius_2026!"
+      JWT_SECRET: "123456789"
+      # Sin cifrado TLS entre contenedores (evita cuelgues en la red de Codespaces)
+      SPRING_DATASOURCE_URL: "jdbc:sqlserver://localhost:1433;databaseName=DevGeniusDB;encrypt=false;trustServerCertificate=true"
+
+volumes:
+  sqldata:
