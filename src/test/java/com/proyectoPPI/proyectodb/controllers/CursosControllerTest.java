@@ -223,7 +223,7 @@ class CursosControllerTest {
         when(jdbcTemplate.queryForList(anyString(), eq("%java%")))
                 .thenReturn(List.of(Map.of("CursoID", 5, "Titulo", "Curso Completo de Java")));
 
-        ResponseEntity<?> respuesta = controller.buscarPorTitulo("java");
+        ResponseEntity<?> respuesta = controller.buscarPorTitulo("Python");
 
         assertEquals(200, respuesta.getStatusCode().value());
         assertEquals(1, ((List<?>) respuesta.getBody()).size());
