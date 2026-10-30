@@ -11,17 +11,20 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-/**
- * Pruebas unitarias para LeccionesController: valida los distintos
- * codigos de respuesta y el parseo del campo JSON "Preguntas" segun el
- * dato que retorna la base de datos (simulada).
- */
 class LeccionesControllerTest {
+
+    private static final String PREGUNTAS_JSON = """
+            [{"pregunta":"¿Qué etiqueta se usa para crear un enlace?",
+              "opciones":["<link>","<a>","<url>","<href>"],
+              "respuestaCorrecta":1,
+              "explicacion":"La etiqueta <a> se usa para crear enlaces."}]
+            """;
 
     private Db db;
     private JdbcTemplate jdbcTemplate;
@@ -127,5 +130,74 @@ class LeccionesControllerTest {
         ResponseEntity<?> respuesta = controller.deleteLeccion(1);
 
         assertThat(respuesta.getStatusCode().value()).isEqualTo(200);
+    }
+
+    @Test
+    void buscarLecciones_devuelve400SiElTituloEstaVacio() {
+        ResponseEntity<?> respuesta = controller.buscarLecciones("");
+
+        assertEquals(400, respuesta.getStatusCode().value());
+    }
+
+    @Test
+    void buscarLecciones_devuelve503SiLaBaseDeDatosNoEstaDisponible() {
+        when(db.isAvailable()).thenReturn(false);
+
+        ResponseEntity<?> respuesta = controller.buscarLecciones("html");
+
+        assertEquals(503, respuesta.getStatusCode().value());
+    }
+
+    @Test
+    void buscarLecciones_devuelve200ConLasLeccionesQueCoinciden() {
+        when(db.isAvailable()).thenReturn(true);
+        Map<String, Object> leccion = new HashMap<>(); // mutable: parsePreguntas hace put()
+        leccion.put("LeccionID", 7);
+        leccion.put("Titulo", "¿Qué es HTML?");
+        leccion.put("Preguntas", null);
+        when(jdbcTemplate.queryForList(anyString(), eq("%html%"))).thenReturn(List.of(leccion));
+
+        ResponseEntity<?> respuesta = controller.buscarLecciones("html");
+
+        assertEquals(200, respuesta.getStatusCode().value());
+        assertEquals(1, ((List<?>) respuesta.getBody()).size());
+    }
+
+    @Test
+    void verificarRespuesta_devuelve404SiLaLeccionNoExiste() {
+        when(db.isAvailable()).thenReturn(true);
+        when(jdbcTemplate.queryForList(anyString(), eq(99))).thenReturn(List.of());
+
+        ResponseEntity<?> respuesta = controller.verificarRespuesta(99, Map.of("PreguntaIndex", 0, "Respuesta", 1));
+
+        assertEquals(404, respuesta.getStatusCode().value());
+    }
+
+    @Test
+    void verificarRespuesta_devuelveCorrectaTrueCuandoCoincideConLaRespuestaVerdadera() {
+        when(db.isAvailable()).thenReturn(true);
+        when(jdbcTemplate.queryForList(anyString(), eq(12)))
+                .thenReturn(List.of(Map.of("Preguntas", PREGUNTAS_JSON)));
+
+        ResponseEntity<?> respuesta = controller.verificarRespuesta(12, Map.of("PreguntaIndex", 0, "Respuesta", 1));
+
+        assertEquals(200, respuesta.getStatusCode().value());
+        Map<?, ?> cuerpo = (Map<?, ?>) respuesta.getBody();
+        assertEquals(true, cuerpo.get("Correcta"));
+        assertEquals(1, cuerpo.get("RespuestaCorrecta"));
+    }
+
+    @Test
+    void verificarRespuesta_devuelveCorrectaFalseCuandoLaRespuestaEsIncorrecta() {
+        when(db.isAvailable()).thenReturn(true);
+        when(jdbcTemplate.queryForList(anyString(), eq(12)))
+                .thenReturn(List.of(Map.of("Preguntas", PREGUNTAS_JSON)));
+
+        ResponseEntity<?> respuesta = controller.verificarRespuesta(12, Map.of("PreguntaIndex", 0, "Respuesta", 3));
+
+        assertEquals(200, respuesta.getStatusCode().value());
+        Map<?, ?> cuerpo = (Map<?, ?>) respuesta.getBody();
+        assertEquals(false, cuerpo.get("Correcta"));
+        assertEquals(1, cuerpo.get("RespuestaCorrecta"));
     }
 }

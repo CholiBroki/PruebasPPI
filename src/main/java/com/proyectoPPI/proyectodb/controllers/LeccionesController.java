@@ -1,5 +1,6 @@
 package com.proyectoPPI.proyectodb.controllers;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.proyectoPPI.proyectodb.db.Db;
 import com.proyectoPPI.proyectodb.security.RequireAdmin;
@@ -8,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.sql.Timestamp;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -48,6 +50,25 @@ public class LeccionesController {
         }
     }
 
+    // NUEVO: busca lecciones cuyo titulo contenga el texto recibido
+    @GetMapping("/buscar")
+    @RequireAuth
+    public ResponseEntity<?> buscarLecciones(@RequestParam("titulo") String titulo) {
+        if (titulo == null || titulo.isBlank()) {
+            return ResponseEntity.status(400).body(Map.of("error", "El titulo es requerido"));
+        }
+        try {
+            if (!db.isAvailable()) return ResponseEntity.status(503).body(Map.of("error", "Base de datos no disponible"));
+            List<Map<String, Object>> rows = db.jdbc().queryForList(
+                    "SELECT " + LECCION_COLUMNS + " FROM Lecciones WHERE Titulo LIKE ? ORDER BY CursoID, ISNULL(Orden, LeccionID)",
+                    "%" + titulo.trim() + "%");
+            for (Map<String, Object> row : rows) parsePreguntas(row);
+            return ResponseEntity.ok(rows);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", String.valueOf(e.getMessage())));
+        }
+    }
+
     @GetMapping("/{id}")
     @RequireAuth
     public ResponseEntity<?> getLeccionById(@PathVariable int id) {
@@ -59,6 +80,51 @@ public class LeccionesController {
             Map<String, Object> leccion = rows.get(0);
             parsePreguntas(leccion);
             return ResponseEntity.ok(leccion);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", String.valueOf(e.getMessage())));
+        }
+    }
+
+    // NUEVO: compara la respuesta verdadera de una pregunta con la respuesta ingresada por el usuario
+    // Body esperado: {"PreguntaIndex": 0, "Respuesta": 1}  (Respuesta = indice de la opcion elegida)
+    @PostMapping("/{id}/verificar-respuesta")
+    @RequireAuth
+    public ResponseEntity<?> verificarRespuesta(@PathVariable int id, @RequestBody Map<String, Object> body) {
+        Object indiceObj = body.get("PreguntaIndex");
+        Object respuestaObj = body.get("Respuesta");
+
+        if (!(indiceObj instanceof Number) || !(respuestaObj instanceof Number)) {
+            return ResponseEntity.status(400).body(Map.of("error", "PreguntaIndex y Respuesta son requeridos"));
+        }
+
+        try {
+            if (!db.isAvailable()) return ResponseEntity.status(503).body(Map.of("error", "Base de datos no disponible"));
+
+            List<Map<String, Object>> rows = db.jdbc().queryForList(
+                    "SELECT Preguntas FROM Lecciones WHERE LeccionID = ?", id);
+            if (rows.isEmpty()) return ResponseEntity.status(404).body(Map.of("error", "Lección no encontrada"));
+
+            Object raw = rows.get(0).get("Preguntas");
+            if (!(raw instanceof String json) || json.isBlank()) {
+                return ResponseEntity.status(400).body(Map.of("error", "La lección no tiene preguntas"));
+            }
+
+            List<Map<String, Object>> preguntas = objectMapper.readValue(
+                    json, new TypeReference<List<Map<String, Object>>>() {});
+            int indice = ((Number) indiceObj).intValue();
+            if (indice < 0 || indice >= preguntas.size()) {
+                return ResponseEntity.status(400).body(Map.of("error", "PreguntaIndex fuera de rango"));
+            }
+
+            Map<String, Object> pregunta = preguntas.get(indice);
+            int correcta = ((Number) pregunta.get("respuestaCorrecta")).intValue();
+            int respuestaUsuario = ((Number) respuestaObj).intValue();
+
+            Map<String, Object> resultado = new HashMap<>();
+            resultado.put("Correcta", correcta == respuestaUsuario);
+            resultado.put("RespuestaCorrecta", correcta);
+            resultado.put("Explicacion", pregunta.get("explicacion"));
+            return ResponseEntity.ok(resultado);
         } catch (Exception e) {
             return ResponseEntity.status(500).body(Map.of("error", String.valueOf(e.getMessage())));
         }

@@ -11,17 +11,13 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-/**
- * Pruebas unitarias para CursosController. Cada prueba simula una
- * respuesta distinta del Db/JdbcTemplate para validar que el controlador
- * responde el codigo HTTP y el cuerpo correctos segun el dato recibido.
- */
 class CursosControllerTest {
 
     private Db db;
@@ -203,5 +199,33 @@ class CursosControllerTest {
         ResponseEntity<?> respuesta = controller.deleteCurso(1);
 
         assertThat(respuesta.getStatusCode().value()).isEqualTo(200);
+    }
+
+    @Test
+    void buscarPorTitulo_devuelve400SiElTituloEstaVacio() {
+        ResponseEntity<?> respuesta = controller.buscarPorTitulo("   ");
+
+        assertEquals(400, respuesta.getStatusCode().value());
+    }
+
+    @Test
+    void buscarPorTitulo_devuelve503SiLaBaseDeDatosNoEstaDisponible() {
+        when(db.isAvailable()).thenReturn(false);
+
+        ResponseEntity<?> respuesta = controller.buscarPorTitulo("java");
+
+        assertEquals(503, respuesta.getStatusCode().value());
+    }
+
+    @Test
+    void buscarPorTitulo_devuelve200ConLosCursosQueCoinciden() {
+        when(db.isAvailable()).thenReturn(true);
+        when(jdbcTemplate.queryForList(anyString(), eq("%java%")))
+                .thenReturn(List.of(Map.of("CursoID", 5, "Titulo", "Curso Completo de Java")));
+
+        ResponseEntity<?> respuesta = controller.buscarPorTitulo("java");
+
+        assertEquals(200, respuesta.getStatusCode().value());
+        assertEquals(1, ((List<?>) respuesta.getBody()).size());
     }
 }

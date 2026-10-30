@@ -1,0 +1,3544 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.github/
+  workflows/
+    ci.yml
+db/
+  DevGeniusDB.sql
+src/
+  main/
+    java/
+      com/
+        proyectoPPI/
+          proyectodb/
+            config/
+              CorsConfig.java
+              GlobalExceptionHandler.java
+              WebConfig.java
+            controllers/
+              AuthController.java
+              CursosController.java
+              LeccionesController.java
+              UsuariosController.java
+            db/
+              Db.java
+            security/
+              AuthInterceptor.java
+              JwtUtil.java
+              RequireAdmin.java
+              RequireAuth.java
+            ProyectodbApplication.java
+    resources/
+      application.properties
+  test/
+    java/
+      com/
+        proyectoPPI/
+          proyectodb/
+            controllers/
+              AuthControllerTest.java
+              CursosControllerTest.java
+              LeccionesControllerTest.java
+              UsuariosControllerTest.java
+            db/
+              DbTest.java
+            security/
+              AuthInterceptorTest.java
+              JwtUtilTest.java
+            ProyectodbApplicationTests.java
+.dockerignore
+docker-compose.yml
+Dockerfile
+HELP.md
+mvnw
+mvnw.cmd
+pom.xml
+README-MIGRACION.md
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path=".github/workflows/ci.yml">
+name: Java CI con Maven
+
+# Controla cuándo se ejecutará la automatización
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Paso 1: Descarga el código de tu repositorio en el servidor de GitHub Actions
+    - name: Clonar el repositorio
+      uses: actions/checkout@v4
+
+    # Paso 2: Configura el entorno de Java (JDK) en el servidor virtual
+    - name: Configurar JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: maven # Acelera las descargas de dependencias en futuros cambios
+
+    # Paso 3: Compila el código y ejecuta los métodos con la anotación @Test
+    - name: Ejecutar pruebas unitarias con Maven
+      run: mvn clean test
+</file>
+
+<file path="db/DevGeniusDB.sql">
+IF DB_ID(N'DevGeniusDB') IS NULL CREATE DATABASE [DevGeniusDB];
+GO
+USE [DevGeniusDB]
+GO
+/****** Object:  Table [dbo].[Usuarios]    Script Date: 2/06/2026 10:49:13 a. m. ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Usuarios](
+	[UsuarioID] [int] IDENTITY(1,1) NOT NULL,
+	[Nombre] [nvarchar](100) NULL,
+	[Apellido] [nvarchar](100) NULL,
+	[CorreoElectronico] [nvarchar](255) NOT NULL,
+	[NombreUsuario] [nvarchar](100) NOT NULL,
+	[PasswordHash] [nvarchar](512) NOT NULL,
+	[PasswordSalt] [nvarchar](256) NOT NULL,
+	[AceptaTerminos] [bit] NULL,
+	[Activo] [bit] NULL,
+	[EmailVerificado] [bit] NULL,
+ CONSTRAINT [PK_Usuarios] PRIMARY KEY CLUSTERED 
+(
+	[UsuarioID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[Sesiones]    Script Date: 2/06/2026 10:49:13 a. m. ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Sesiones](
+	[SesionID] [int] IDENTITY(1,1) NOT NULL,
+	[UsuarioID] [int] NOT NULL,
+	[Token] [nvarchar](512) NOT NULL,
+	[IPAddress] [nvarchar](45) NULL,
+	[UserAgent] [nvarchar](500) NULL,
+	[FechaCreacion] [datetime2](7) NOT NULL,
+	[FechaExpiracion] [datetime2](7) NOT NULL,
+	[Revocada] [bit] NOT NULL,
+	[FechaRevocacion] [datetime2](7) NULL,
+ CONSTRAINT [PK_Sesiones] PRIMARY KEY CLUSTERED 
+(
+	[SesionID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  View [dbo].[vw_SesionesActivas]    Script Date: 2/06/2026 10:49:13 a. m. ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+-- Vista de sesiones activas (no expiradas, no revocadas)
+CREATE   VIEW [dbo].[vw_SesionesActivas] AS
+SELECT
+    s.SesionID,
+    s.UsuarioID,
+    u.NombreUsuario,
+    u.CorreoElectronico,
+    s.IPAddress,
+    s.FechaCreacion,
+    s.FechaExpiracion
+FROM dbo.Sesiones s
+INNER JOIN dbo.Usuarios u ON s.UsuarioID = u.UsuarioID
+WHERE s.Revocada = 0
+  AND s.FechaExpiracion > GETDATE();
+GO
+/****** Object:  Table [dbo].[AuditoriaUsuarios]    Script Date: 2/06/2026 10:49:13 a. m. ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[AuditoriaUsuarios](
+	[AuditoriaID] [int] IDENTITY(1,1) NOT NULL,
+	[UsuarioID] [int] NOT NULL,
+	[Accion] [nvarchar](100) NOT NULL,
+	[Descripcion] [nvarchar](500) NULL,
+	[IPAddress] [nvarchar](45) NULL,
+	[FechaAccion] [datetime2](7) NOT NULL,
+ CONSTRAINT [PK_AuditoriaUsuarios] PRIMARY KEY CLUSTERED 
+(
+	[AuditoriaID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[Cursos]    Script Date: 2/06/2026 10:49:13 a. m. ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Cursos](
+	[CursoID] [int] IDENTITY(1,1) NOT NULL,
+	[Titulo] [nvarchar](255) NOT NULL,
+	[Descripcion] [nvarchar](max) NULL,
+	[NivelDificultad] [nvarchar](50) NULL,
+	[ImagenPortada] [nvarchar](500) NULL,
+	[Idioma] [nvarchar](50) NULL,
+	[EstaPublicado] [bit] NULL,
+	[FechaCreacion] [datetime] NULL,
+	[FechaPublicacion] [datetime] NULL,
+	[XPRecompensa] [int] NULL,
+	[InstructorID] [int] NULL,
+	[Activo] [bit] NOT NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[CursoID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[IntentosFallidos]    Script Date: 2/06/2026 10:49:13 a. m. ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[IntentosFallidos](
+	[IntentoID] [int] IDENTITY(1,1) NOT NULL,
+	[UsuarioID] [int] NULL,
+	[CorreoIntento] [nvarchar](255) NULL,
+	[IPAddress] [nvarchar](45) NULL,
+	[FechaIntento] [datetime2](7) NOT NULL,
+	[Exitoso] [bit] NOT NULL,
+ CONSTRAINT [PK_IntentosFallidos] PRIMARY KEY CLUSTERED 
+(
+	[IntentoID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[Lecciones]    Script Date: 2/06/2026 10:49:13 a. m. ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Lecciones](
+	[LeccionID] [int] IDENTITY(1,1) NOT NULL,
+	[CursoID] [int] NULL,
+	[Orden] [int] NULL,
+	[Titulo] [nvarchar](255) NOT NULL,
+	[Tipo] [nvarchar](50) NULL,
+	[Contenido] [nvarchar](max) NULL,
+	[CodigoEjemplo] [nvarchar](max) NULL,
+	[XPLeccion] [int] NULL,
+	[FechaCreacion] [datetime] NULL,
+	[Preguntas] [nvarchar](max) NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[LeccionID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[RecuperacionContrasena]    Script Date: 2/06/2026 10:49:13 a. m. ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[RecuperacionContrasena](
+	[RecuperacionID] [int] IDENTITY(1,1) NOT NULL,
+	[UsuarioID] [int] NOT NULL,
+	[Token] [nvarchar](512) NOT NULL,
+	[FechaCreacion] [datetime2](7) NOT NULL,
+	[FechaExpiracion] [datetime2](7) NOT NULL,
+	[Usado] [bit] NOT NULL,
+	[IPAddress] [nvarchar](45) NULL,
+ CONSTRAINT [PK_RecuperacionContrasena] PRIMARY KEY CLUSTERED 
+(
+	[RecuperacionID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[Registro]    Script Date: 2/06/2026 10:49:13 a. m. ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Registro](
+	[RegistroID] [int] IDENTITY(1,1) NOT NULL,
+	[NombreUsuario] [nvarchar](100) NOT NULL,
+	[Email] [nvarchar](255) NOT NULL,
+	[Contrasena] [nvarchar](512) NOT NULL,
+	[ConfirmarContrasena] [nvarchar](512) NOT NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[RegistroID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+SET IDENTITY_INSERT [dbo].[Cursos] ON 
+
+INSERT [dbo].[Cursos] ([CursoID], [Titulo], [Descripcion], [NivelDificultad], [ImagenPortada], [Idioma], [EstaPublicado], [FechaCreacion], [FechaPublicacion], [XPRecompensa], [InstructorID], [Activo]) VALUES (1, N'Introducción a JavaScript', N'Aprende los fundamentos de JavaScript, el lenguaje de programación más popular para el desarrollo web.', N'principiante', N'https://example.com/js-intro.jpg', N'Español', 0, CAST(N'2026-04-23T00:00:00.000' AS DateTime), CAST(N'2026-04-23T00:00:00.000' AS DateTime), 150, 1, 0)
+INSERT [dbo].[Cursos] ([CursoID], [Titulo], [Descripcion], [NivelDificultad], [ImagenPortada], [Idioma], [EstaPublicado], [FechaCreacion], [FechaPublicacion], [XPRecompensa], [InstructorID], [Activo]) VALUES (2, N'Desarrollo Web con React', N'Crea aplicaciones web modernas utilizando React, una biblioteca de JavaScript para interfaces de usuario.', N'intermedio', N'https://example.com/react-course.jpg', N'Español', 0, CAST(N'2026-04-23T00:00:00.000' AS DateTime), CAST(N'2026-04-23T00:00:00.000' AS DateTime), 200, 2, 0)
+INSERT [dbo].[Cursos] ([CursoID], [Titulo], [Descripcion], [NivelDificultad], [ImagenPortada], [Idioma], [EstaPublicado], [FechaCreacion], [FechaPublicacion], [XPRecompensa], [InstructorID], [Activo]) VALUES (3, N'Bases de Datos SQL Server', N'Domina el diseño y gestión de bases de datos relacionales utilizando SQL Server.', N'intermedio', N'https://example.com/sql-server.jpg', N'Español', 0, CAST(N'2026-04-23T00:00:00.000' AS DateTime), CAST(N'2026-05-20T22:46:15.547' AS DateTime), 180, 2, 0)
+INSERT [dbo].[Cursos] ([CursoID], [Titulo], [Descripcion], [NivelDificultad], [ImagenPortada], [Idioma], [EstaPublicado], [FechaCreacion], [FechaPublicacion], [XPRecompensa], [InstructorID], [Activo]) VALUES (4, N'HTML — Fundamentos del Web', N'Aprende a construir páginas web desde cero usando HTML5. Domina la estructura, semántica y buenas prácticas del lenguaje de marcado más importante de la web.', N'principiante', N'https://example.com/html-course.jpg', N'Español', 1, CAST(N'2026-04-30T00:00:00.000' AS DateTime), CAST(N'2026-06-02T00:30:08.147' AS DateTime), 120, 1, 1)
+INSERT [dbo].[Cursos] ([CursoID], [Titulo], [Descripcion], [NivelDificultad], [ImagenPortada], [Idioma], [EstaPublicado], [FechaCreacion], [FechaPublicacion], [XPRecompensa], [InstructorID], [Activo]) VALUES (5, N'Curso Completo de Java', N'Aprende Java desde cero hasta programación orientada a objetos', N'Intermedio', N'java-portada.jpg', N'Español', 0, CAST(N'2026-05-14T21:00:28.227' AS DateTime), CAST(N'2026-06-02T00:58:47.060' AS DateTime), 100, 1, 0)
+SET IDENTITY_INSERT [dbo].[Cursos] OFF
+GO
+SET IDENTITY_INSERT [dbo].[Lecciones] ON 
+
+INSERT [dbo].[Lecciones] ([LeccionID], [CursoID], [Orden], [Titulo], [Tipo], [Contenido], [CodigoEjemplo], [XPLeccion], [FechaCreacion], [Preguntas]) VALUES (7, 4, 1, N'¿Qué es HTML?', N'texto', N'HTML (HyperText Markup Language) es el lenguaje estándar para crear páginas web. No es un lenguaje de programación — es un **lenguaje de marcado** que define la estructura y el contenido de una página.
+
+Cada página web que visitas está construida sobre HTML. Los navegadores (Chrome, Firefox, Safari) leen el HTML y lo convierten en lo que ves en pantalla.
+
+**¿Cómo funciona?**
+HTML usa **etiquetas** (tags) para marcar el contenido. Una etiqueta le dice al navegador qué tipo de contenido es: un título, un párrafo, una imagen, un enlace, etc.
+
+Las etiquetas tienen esta forma:
+- Etiqueta de apertura: `<p>`
+- Contenido: "Hola mundo"
+- Etiqueta de cierre: `</p>`
+
+Algunas etiquetas son "auto-cerrantes" y no necesitan etiqueta de cierre, como `<img>` o `<br>`.', N'<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8">
+    <title>Mi primera página</title>
+  </head>
+  <body>
+    <h1>¡Hola Mundo!</h1>
+    <p>Esta es mi primera página web.</p>
+  </body>
+</html>', 20, CAST(N'2026-05-12T21:02:32.173' AS DateTime), NULL)
+INSERT [dbo].[Lecciones] ([LeccionID], [CursoID], [Orden], [Titulo], [Tipo], [Contenido], [CodigoEjemplo], [XPLeccion], [FechaCreacion], [Preguntas]) VALUES (8, 4, 2, N'Estructura básica de un documento HTML', N'texto', N'Todo documento HTML válido tiene una estructura fija que debes conocer de memoria.
+
+**`<!DOCTYPE html>`**
+Declara que el documento usa HTML5. Siempre va en la primera línea. Le dice al navegador qué versión de HTML usar.
+
+**`<html lang="es">`**
+El elemento raíz que contiene todo el documento. El atributo `lang` indica el idioma del contenido, lo cual es importante para accesibilidad y SEO.
+
+**`<head>`**
+Contiene metadatos (información sobre la página que no se muestra directamente):
+- `<meta charset="UTF-8">` — codificación de caracteres (permite tildes, ñ, etc.)
+- `<meta name="viewport">` — esencial para diseño responsivo
+- `<title>` — el texto que aparece en la pestaña del navegador
+- `<link>` — para conectar hojas de estilo CSS
+
+**`<body>`**
+Todo lo que va aquí **sí se muestra** en el navegador: textos, imágenes, botones, formularios, etc.', N'<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Mi sitio web personal">
+    <title>Mi Sitio Web</title>
+    <link rel="stylesheet" href="estilos.css">
+  </head>
+  <body>
+    <!-- Todo el contenido visible va aquí -->
+    <h1>Bienvenido</h1>
+    <p>Este es el cuerpo de mi página.</p>
+  </body>
+</html>', 20, CAST(N'2026-05-12T21:02:32.180' AS DateTime), NULL)
+INSERT [dbo].[Lecciones] ([LeccionID], [CursoID], [Orden], [Titulo], [Tipo], [Contenido], [CodigoEjemplo], [XPLeccion], [FechaCreacion], [Preguntas]) VALUES (9, 4, 3, N'Encabezados y párrafos', N'texto', N'**Encabezados (Headings)**
+HTML tiene 6 niveles de encabezados, de `<h1>` a `<h6>`. `<h1>` es el más importante (y el más grande visualmente), `<h6>` el menos importante.
+
+Reglas importantes:
+- Solo debe haber **un `<h1>` por página** — es el título principal
+- Los encabezados deben usarse en orden jerárquico (no saltar de `<h1>` a `<h4>`)
+- Los encabezados no son solo para hacer texto grande — tienen significado semántico
+
+**Párrafos**
+La etiqueta `<p>` define un párrafo de texto. El navegador automáticamente añade espacio antes y después de cada párrafo.
+
+**Saltos de línea y separadores**
+- `<br>` — salto de línea dentro de un párrafo (auto-cerrante)
+- `<hr>` — línea horizontal separadora (auto-cerrante)
+
+**Formato de texto**
+- `<strong>` — texto en **negrita** (importancia semántica)
+- `<em>` — texto en *cursiva* (énfasis semántico)
+- `<mark>` — texto resaltado
+- `<small>` — texto más pequeño', N'<h1>Título principal de la página</h1>
+<h2>Sección: Sobre mí</h2>
+<h3>Subsección: Mi experiencia</h3>
+
+<p>
+  Soy un desarrollador web con <strong>5 años de experiencia</strong>
+  en <em>tecnologías frontend</em>.
+</p>
+
+<p>
+  Me especializo en HTML, CSS y JavaScript.<br>
+  También trabajo con React y Vue.js.
+</p>
+
+<hr>
+
+<h2>Sección: Mis proyectos</h2>
+<p>
+  Aquí encontrarás <mark>mis mejores proyectos</mark>.
+  <small>(Actualizado en 2026)</small>
+</p>', 25, CAST(N'2026-05-12T21:02:32.183' AS DateTime), NULL)
+INSERT [dbo].[Lecciones] ([LeccionID], [CursoID], [Orden], [Titulo], [Tipo], [Contenido], [CodigoEjemplo], [XPLeccion], [FechaCreacion], [Preguntas]) VALUES (10, 4, 4, N'Listas: ordenadas y desordenadas', N'texto', N'Las listas son esenciales para organizar información en HTML. Existen tres tipos:
+
+**Lista desordenada `<ul>`** (Unordered List)
+Muestra ítems con viñetas (•). Úsala cuando el orden no importa, como una lista de ingredientes o características.
+
+**Lista ordenada `<ol>`** (Ordered List)
+Muestra ítems numerados (1, 2, 3...). Úsala cuando el orden sí importa, como pasos de un proceso.
+
+**Lista de descripción `<dl>`** (Description List)
+Para pares de término-definición. Usa `<dt>` para el término y `<dd>` para la descripción.
+
+**Listas anidadas**
+Puedes anidar listas dentro de otras listas para crear jerarquías.', N'<ul>
+  <li>Pan</li>
+  <li>Leche</li>
+  <li>Huevos</li>
+</ul>
+
+<ol>
+  <li>Precalentar el horno</li>
+  <li>Mezclar los ingredientes</li>
+  <li>Hornear por 30 minutos</li>
+</ol>
+
+<dl>
+  <dt>HTML</dt>
+  <dd>Lenguaje de marcado para web</dd>
+  <dt>CSS</dt>
+  <dd>Lenguaje de estilos para diseño web</dd>
+</dl>', 25, CAST(N'2026-05-12T21:02:32.190' AS DateTime), NULL)
+INSERT [dbo].[Lecciones] ([LeccionID], [CursoID], [Orden], [Titulo], [Tipo], [Contenido], [CodigoEjemplo], [XPLeccion], [FechaCreacion], [Preguntas]) VALUES (11, 4, 5, N'Imágenes y enlaces', N'texto', N'**Imágenes con `<img>`**
+La etiqueta `<img>` inserta una imagen. Es auto-cerrante y tiene atributos clave:
+- `src` — ruta o URL de la imagen **(obligatorio)**
+- `alt` — texto alternativo **(obligatorio)** — vital para accesibilidad
+- `width` y `height` — dimensiones en píxeles
+- `loading="lazy"` — carga la imagen solo cuando está a punto de ser visible (mejora rendimiento)
+
+**Enlaces con `<a>`**
+La etiqueta `<a>` (anchor) crea hipervínculos. El atributo `href` define el destino.
+- `target="_blank"` — abre en pestaña nueva
+- `href="mailto:x@x.com"` — enlace para enviar email
+- `href="tel:+123456"` — enlace para llamar (móviles)
+- `href="#seccion"` — enlace a un ID dentro de la misma página', N'<img src="./imagenes/perfil.jpg" alt="Foto de perfil" width="200" height="200">
+
+<a href="https://github.com" target="_blank">Mi GitHub</a>
+<a href="mailto:contacto@ejemplo.com">Envíame un email</a>
+
+<section id="proyectos">
+  <h2>Mis Proyectos</h2>
+</section>', 30, CAST(N'2026-05-12T21:02:32.197' AS DateTime), NULL)
+INSERT [dbo].[Lecciones] ([LeccionID], [CursoID], [Orden], [Titulo], [Tipo], [Contenido], [CodigoEjemplo], [XPLeccion], [FechaCreacion], [Preguntas]) VALUES (12, 4, 6, N'Quiz: Demuestra tu conocimiento', N'quiz', N'Responde correctamente estas preguntas para demostrar que has aprendido los conceptos de HTML.', N'', 100, CAST(N'2026-05-12T21:02:32.203' AS DateTime), N'[{"pregunta":"¿Qué significa HTML?","opciones":["HyperText Markup Language","High Tech Modern Language","Home Tool Markup Language","Hyper Transfer Markup Language"],"respuestaCorrecta":0,"explicacion":"HTML significa HyperText Markup Language, el lenguaje estándar para crear páginas web."},{"pregunta":"¿Cuál es la estructura básica de un documento HTML?","opciones":["<html><head><body>","<head><body><html>","<body><head><html>","<html><body><head>"],"respuestaCorrecta":0,"explicacion":"La estructura básica es <!DOCTYPE html><html><head>...</head><body>...</body></html>"},{"pregunta":"¿Qué etiqueta se usa para crear un párrafo?","opciones":["<p>","<para>","<paragraph>","<text>"],"respuestaCorrecta":0,"explicacion":"La etiqueta <p> se usa para definir párrafos de texto."},{"pregunta":"¿Qué hace la etiqueta <!DOCTYPE html>?","opciones":["Define el título de la página","Declara que usa HTML5","Enlaza el CSS","Define el idioma"],"respuestaCorrecta":1,"explicacion":"La declaración <!DOCTYPE html> le dice al navegador que el documento usa HTML5."},{"pregunta":"¿Dónde va el contenido visible de la página?","opciones":["En <head>","En <html>","En <body>","En <title>"],"respuestaCorrecta":2,"explicacion":"Todo el contenido visible va dentro de la etiqueta <body>."},{"pregunta":"¿Cuántos niveles de encabezados tiene HTML?","opciones":["3","5","6","8"],"respuestaCorrecta":2,"explicacion":"HTML tiene 6 niveles de encabezados: h1, h2, h3, h4, h5 y h6."},{"pregunta":"¿Cuál es la regla más importante sobre encabezados?","opciones":["Deben ser coloridos","Solo uno por página","Deben estar en mayúsculas","Solo para títulos"],"respuestaCorrecta":1,"explicacion":"Solo debe haber un <h1> por página, ya que representa el título principal."},{"pregunta":"¿Qué tipo de lista muestra viñetas?","opciones":["<ol>","<ul>","<dl>","<list>"],"respuestaCorrecta":1,"explicacion":"La lista desordenada <ul> muestra ítems con viñetas (•)."},{"pregunta":"¿Qué tipo de lista muestra números?","opciones":["<ul>","<ol>","<dl>","<nl>"],"respuestaCorrecta":1,"explicacion":"La lista ordenada <ol> muestra ítems numerados (1, 2, 3...)."},{"pregunta":"¿Qué etiqueta se usa para crear un enlace?","opciones":["<link>","<a>","<url>","<href>"],"respuestaCorrecta":1,"explicacion":"La etiqueta <a> (anchor) se usa para crear enlaces a otras páginas."}]')
+SET IDENTITY_INSERT [dbo].[Lecciones] OFF
+GO
+SET IDENTITY_INSERT [dbo].[Usuarios] ON 
+
+INSERT [dbo].[Usuarios] ([UsuarioID], [Nombre], [Apellido], [CorreoElectronico], [NombreUsuario], [PasswordHash], [PasswordSalt], [AceptaTerminos], [Activo], [EmailVerificado]) VALUES (3, N'David', N'suarez', N'david@example.com', N'david.suarez', N'$2b$10$zMNnQtP6KJkIDVlrjn2yiuFO.rnnmEo2wHlAQx5XSeT8Kz4uYNHTO', N'$2b$10$zMNnQtP6KJkIDVlrjn2yiu', 0, 1, 0)
+INSERT [dbo].[Usuarios] ([UsuarioID], [Nombre], [Apellido], [CorreoElectronico], [NombreUsuario], [PasswordHash], [PasswordSalt], [AceptaTerminos], [Activo], [EmailVerificado]) VALUES (4, N'Daniela', N'Suarez', N'daniela@gmail.com', N'daniela.suarez', N'$2b$10$wAxYjidpmjlmtXwI7TjMMubQzrvu6dZtCj4I/cQC4AD/oQZrP7nbO', N'$2b$10$wAxYjidpmjlmtXwI7TjMMu', 0, 1, 0)
+INSERT [dbo].[Usuarios] ([UsuarioID], [Nombre], [Apellido], [CorreoElectronico], [NombreUsuario], [PasswordHash], [PasswordSalt], [AceptaTerminos], [Activo], [EmailVerificado]) VALUES (5, N'diego', N'delgado', N'diego@gmail.com', N'diego.delgado', N'$2b$10$vVilWwCfIW1OGiltbOiEH.bcQOOFLvx6lTVR9p.72dusUCsKJT/K6', N'$2b$10$vVilWwCfIW1OGiltbOiEH.', 0, 1, 0)
+INSERT [dbo].[Usuarios] ([UsuarioID], [Nombre], [Apellido], [CorreoElectronico], [NombreUsuario], [PasswordHash], [PasswordSalt], [AceptaTerminos], [Activo], [EmailVerificado]) VALUES (6, N'Administrador', N'Sistema', N'admin@admin.com', N'admin', N'$2b$10$QDJ3p0Zhhgn86VpUZb.k7uz3Fn.7Crhnkl7rzlys9GDdTf.DHO0Eu', N'$2b$10$QDJ3p0Zhhgn86VpUZb.k7u', 0, 1, 1)
+INSERT [dbo].[Usuarios] ([UsuarioID], [Nombre], [Apellido], [CorreoElectronico], [NombreUsuario], [PasswordHash], [PasswordSalt], [AceptaTerminos], [Activo], [EmailVerificado]) VALUES (11, N'Juan', N'Osorio', N'juan.osorio@gmail.com', N'juan.osorio', N'$2b$10$E.XF0.IM1I0JBwzB6utH/uHd4pokA/QRBKlDKFUhea6y9ha/qO1x6', N'$2b$10$E.XF0.IM1I0JBwzB6utH/u', 0, 1, 0)
+INSERT [dbo].[Usuarios] ([UsuarioID], [Nombre], [Apellido], [CorreoElectronico], [NombreUsuario], [PasswordHash], [PasswordSalt], [AceptaTerminos], [Activo], [EmailVerificado]) VALUES (12, N'Carlos', N'Caro', N'carlos123@gmail.com', N'Cachon', N'$2b$10$g8yjc9ilpjwHl1S5G3zgD.ksTGeHLjHmtVuu.Op07vHaCYiA5KVt6', N'$2b$10$g8yjc9ilpjwHl1S5G3zgD.', 0, 1, 1)
+INSERT [dbo].[Usuarios] ([UsuarioID], [Nombre], [Apellido], [CorreoElectronico], [NombreUsuario], [PasswordHash], [PasswordSalt], [AceptaTerminos], [Activo], [EmailVerificado]) VALUES (13, N'maicol', N'franco', N'maicol@gmail.com', N'maicol.franco', N'$2b$10$lXoqJjbc/AiB8RnNtdYIhuyCuJlnJJpTjNoqFS8gGthojgy3Wi36e', N'$2b$10$lXoqJjbc/AiB8RnNtdYIhu', 0, 1, 0)
+SET IDENTITY_INSERT [dbo].[Usuarios] OFF
+GO
+SET ANSI_PADDING ON
+GO
+/****** Object:  Index [IX_IntentosFallidos_IP_Fecha]    Script Date: 2/06/2026 10:49:13 a. m. ******/
+CREATE NONCLUSTERED INDEX [IX_IntentosFallidos_IP_Fecha] ON [dbo].[IntentosFallidos]
+(
+	[IPAddress] ASC,
+	[FechaIntento] ASC
+)
+WHERE ([Exitoso]=(0))
+WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
+SET ANSI_PADDING ON
+GO
+/****** Object:  Index [IX_Recuperacion_Token]    Script Date: 2/06/2026 10:49:13 a. m. ******/
+CREATE NONCLUSTERED INDEX [IX_Recuperacion_Token] ON [dbo].[RecuperacionContrasena]
+(
+	[Token] ASC
+)
+WHERE ([Usado]=(0))
+WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
+SET ANSI_PADDING ON
+GO
+/****** Object:  Index [IX_Sesiones_Token]    Script Date: 2/06/2026 10:49:13 a. m. ******/
+CREATE NONCLUSTERED INDEX [IX_Sesiones_Token] ON [dbo].[Sesiones]
+(
+	[Token] ASC
+)
+WHERE ([Revocada]=(0))
+WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
+/****** Object:  Index [IX_Sesiones_UsuarioID]    Script Date: 2/06/2026 10:49:13 a. m. ******/
+CREATE NONCLUSTERED INDEX [IX_Sesiones_UsuarioID] ON [dbo].[Sesiones]
+(
+	[UsuarioID] ASC,
+	[Revocada] ASC,
+	[FechaExpiracion] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
+SET ANSI_PADDING ON
+GO
+/****** Object:  Index [UQ_Usuarios_Correo]    Script Date: 2/06/2026 10:49:13 a. m. ******/
+ALTER TABLE [dbo].[Usuarios] ADD  CONSTRAINT [UQ_Usuarios_Correo] UNIQUE NONCLUSTERED 
+(
+	[CorreoElectronico] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, IGNORE_DUP_KEY = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
+SET ANSI_PADDING ON
+GO
+/****** Object:  Index [UQ_Usuarios_NombreUsuario]    Script Date: 2/06/2026 10:49:13 a. m. ******/
+ALTER TABLE [dbo].[Usuarios] ADD  CONSTRAINT [UQ_Usuarios_NombreUsuario] UNIQUE NONCLUSTERED 
+(
+	[NombreUsuario] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, IGNORE_DUP_KEY = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
+SET ANSI_PADDING ON
+GO
+/****** Object:  Index [IX_Usuarios_Correo]    Script Date: 2/06/2026 10:49:13 a. m. ******/
+CREATE NONCLUSTERED INDEX [IX_Usuarios_Correo] ON [dbo].[Usuarios]
+(
+	[CorreoElectronico] ASC
+)
+INCLUDE([PasswordHash],[PasswordSalt],[Activo],[EmailVerificado]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
+SET ANSI_PADDING ON
+GO
+/****** Object:  Index [IX_Usuarios_NombreUsuario]    Script Date: 2/06/2026 10:49:13 a. m. ******/
+CREATE NONCLUSTERED INDEX [IX_Usuarios_NombreUsuario] ON [dbo].[Usuarios]
+(
+	[NombreUsuario] ASC
+)
+INCLUDE([PasswordHash],[PasswordSalt],[Activo]) WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, SORT_IN_TEMPDB = OFF, DROP_EXISTING = OFF, ONLINE = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+GO
+ALTER TABLE [dbo].[AuditoriaUsuarios] ADD  DEFAULT (getdate()) FOR [FechaAccion]
+GO
+ALTER TABLE [dbo].[Cursos] ADD  DEFAULT ((1)) FOR [EstaPublicado]
+GO
+ALTER TABLE [dbo].[Cursos] ADD  DEFAULT (getdate()) FOR [FechaCreacion]
+GO
+ALTER TABLE [dbo].[Cursos] ADD  DEFAULT ((0)) FOR [Activo]
+GO
+ALTER TABLE [dbo].[IntentosFallidos] ADD  DEFAULT (getdate()) FOR [FechaIntento]
+GO
+ALTER TABLE [dbo].[IntentosFallidos] ADD  DEFAULT ((0)) FOR [Exitoso]
+GO
+ALTER TABLE [dbo].[Lecciones] ADD  DEFAULT (getdate()) FOR [FechaCreacion]
+GO
+ALTER TABLE [dbo].[RecuperacionContrasena] ADD  DEFAULT (getdate()) FOR [FechaCreacion]
+GO
+ALTER TABLE [dbo].[RecuperacionContrasena] ADD  DEFAULT (dateadd(hour,(2),getdate())) FOR [FechaExpiracion]
+GO
+ALTER TABLE [dbo].[RecuperacionContrasena] ADD  DEFAULT ((0)) FOR [Usado]
+GO
+ALTER TABLE [dbo].[Sesiones] ADD  DEFAULT (getdate()) FOR [FechaCreacion]
+GO
+ALTER TABLE [dbo].[Sesiones] ADD  DEFAULT ((0)) FOR [Revocada]
+GO
+ALTER TABLE [dbo].[Usuarios] ADD  DEFAULT ((0)) FOR [AceptaTerminos]
+GO
+ALTER TABLE [dbo].[Usuarios] ADD  DEFAULT ((1)) FOR [Activo]
+GO
+ALTER TABLE [dbo].[Usuarios] ADD  DEFAULT ((0)) FOR [EmailVerificado]
+GO
+ALTER TABLE [dbo].[AuditoriaUsuarios]  WITH CHECK ADD  CONSTRAINT [FK_Auditoria_Usuarios] FOREIGN KEY([UsuarioID])
+REFERENCES [dbo].[Usuarios] ([UsuarioID])
+ON DELETE CASCADE
+GO
+ALTER TABLE [dbo].[AuditoriaUsuarios] CHECK CONSTRAINT [FK_Auditoria_Usuarios]
+GO
+ALTER TABLE [dbo].[IntentosFallidos]  WITH CHECK ADD  CONSTRAINT [FK_Intentos_Usuarios] FOREIGN KEY([UsuarioID])
+REFERENCES [dbo].[Usuarios] ([UsuarioID])
+ON DELETE SET NULL
+GO
+ALTER TABLE [dbo].[IntentosFallidos] CHECK CONSTRAINT [FK_Intentos_Usuarios]
+GO
+ALTER TABLE [dbo].[Lecciones]  WITH CHECK ADD FOREIGN KEY([CursoID])
+REFERENCES [dbo].[Cursos] ([CursoID])
+GO
+ALTER TABLE [dbo].[RecuperacionContrasena]  WITH CHECK ADD  CONSTRAINT [FK_Recuperacion_Usuarios] FOREIGN KEY([UsuarioID])
+REFERENCES [dbo].[Usuarios] ([UsuarioID])
+ON DELETE CASCADE
+GO
+ALTER TABLE [dbo].[RecuperacionContrasena] CHECK CONSTRAINT [FK_Recuperacion_Usuarios]
+GO
+ALTER TABLE [dbo].[Sesiones]  WITH CHECK ADD  CONSTRAINT [FK_Sesiones_Usuarios] FOREIGN KEY([UsuarioID])
+REFERENCES [dbo].[Usuarios] ([UsuarioID])
+ON DELETE CASCADE
+GO
+ALTER TABLE [dbo].[Sesiones] CHECK CONSTRAINT [FK_Sesiones_Usuarios]
+GO
+ALTER TABLE [dbo].[Usuarios]  WITH CHECK ADD  CONSTRAINT [CK_Usuarios_Apellido] CHECK  ((len(ltrim(rtrim([Apellido])))>=(2)))
+GO
+ALTER TABLE [dbo].[Usuarios] CHECK CONSTRAINT [CK_Usuarios_Apellido]
+GO
+ALTER TABLE [dbo].[Usuarios]  WITH CHECK ADD  CONSTRAINT [CK_Usuarios_Correo] CHECK  (([CorreoElectronico] like '%_@_%._%'))
+GO
+ALTER TABLE [dbo].[Usuarios] CHECK CONSTRAINT [CK_Usuarios_Correo]
+GO
+ALTER TABLE [dbo].[Usuarios]  WITH CHECK ADD  CONSTRAINT [CK_Usuarios_Nombre] CHECK  ((len(ltrim(rtrim([Nombre])))>=(2)))
+GO
+ALTER TABLE [dbo].[Usuarios] CHECK CONSTRAINT [CK_Usuarios_Nombre]
+GO
+ALTER TABLE [dbo].[Usuarios]  WITH CHECK ADD  CONSTRAINT [CK_Usuarios_NombreUsuario] CHECK  ((len([NombreUsuario])>=(4)))
+GO
+ALTER TABLE [dbo].[Usuarios] CHECK CONSTRAINT [CK_Usuarios_NombreUsuario]
+GO
+/****** Object:  StoredProcedure [dbo].[sp_LoginUsuario]    Script Date: 2/06/2026 10:49:13 a. m. ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE PROCEDURE [dbo].[sp_LoginUsuario]
+    @Identificador  NVARCHAR(255),   -- Correo o nombre de usuario
+    @IPAddress      NVARCHAR(45)  = NULL,
+    @UserAgent      NVARCHAR(500) = NULL,
+    @Resultado      NVARCHAR(100) OUTPUT,
+    @UsuarioID      INT           OUTPUT,
+    @PasswordHash   NVARCHAR(512) OUTPUT,
+    @PasswordSalt   NVARCHAR(256) OUTPUT,
+    @NombreCompleto NVARCHAR(210) OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRY
+
+        -- Verificar bloqueo por intentos (más de 5 en los últimos 15 minutos desde esta IP)
+        DECLARE @IntentosRecientes INT;
+        SELECT @IntentosRecientes = COUNT(*)
+        FROM dbo.IntentosFallidos
+        WHERE IPAddress = @IPAddress
+          AND Exitoso = 0
+          AND FechaIntento >= DATEADD(MINUTE, -15, GETDATE());
+
+        IF @IntentosRecientes >= 5
+        BEGIN
+            SET @Resultado = 'ERROR_BLOQUEADO_IP';
+            SET @UsuarioID = -1;
+            RETURN;
+        END
+
+        -- Buscar usuario por correo o nombre de usuario
+        SELECT
+            @UsuarioID      = UsuarioID,
+            @PasswordHash   = PasswordHash,
+            @PasswordSalt   = PasswordSalt,
+            @NombreCompleto = Nombre + ' ' + Apellido
+        FROM dbo.Usuarios
+        WHERE (CorreoElectronico = LOWER(LTRIM(RTRIM(@Identificador)))
+               OR NombreUsuario  = LOWER(LTRIM(RTRIM(@Identificador))))
+          AND Activo = 1;
+
+        IF @UsuarioID IS NULL
+        BEGIN
+            -- Registrar intento fallido (usuario no existe)
+            INSERT INTO dbo.IntentosFallidos (CorreoIntento, IPAddress, Exitoso)
+            VALUES (@Identificador, @IPAddress, 0);
+
+            SET @Resultado = 'ERROR_CREDENCIALES';
+            SET @UsuarioID = -1;
+            RETURN;
+        END
+
+        -- El hash se verifica en la capa de aplicación.
+        -- Si el hash es válido, el backend llama a sp_RegistrarSesion.
+        -- Aquí retornamos los datos necesarios para verificar.
+        SET @Resultado = 'PENDIENTE_VERIFICACION';
+
+    END TRY
+    BEGIN CATCH
+        SET @Resultado = 'ERROR_INTERNO: ' + ERROR_MESSAGE();
+        SET @UsuarioID = -1;
+    END CATCH
+END
+GO
+/****** Object:  StoredProcedure [dbo].[sp_SolicitarRecuperacion]    Script Date: 2/06/2026 10:49:13 a. m. ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+CREATE PROCEDURE [dbo].[sp_SolicitarRecuperacion]
+    @CorreoElectronico  NVARCHAR(255),
+    @Token              NVARCHAR(512),
+    @IPAddress          NVARCHAR(45)  = NULL,
+    @Resultado          NVARCHAR(100) OUTPUT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @UID INT;
+
+    SELECT @UID = UsuarioID
+    FROM dbo.Usuarios
+    WHERE CorreoElectronico = LOWER(LTRIM(RTRIM(@CorreoElectronico)))
+      AND Activo = 1;
+
+    -- Se responde siempre OK por seguridad (no revelar si el correo existe)
+    IF @UID IS NOT NULL
+    BEGIN
+        -- Invalidar tokens anteriores
+        UPDATE dbo.RecuperacionContrasena
+        SET Usado = 1
+        WHERE UsuarioID = @UID AND Usado = 0;
+
+        INSERT INTO dbo.RecuperacionContrasena (UsuarioID, Token, IPAddress)
+        VALUES (@UID, @Token, @IPAddress);
+
+        INSERT INTO dbo.AuditoriaUsuarios (UsuarioID, Accion, IPAddress)
+        VALUES (@UID, 'SOLICITUD_RECUPERACION', @IPAddress);
+    END
+
+    SET @Resultado = 'OK';
+END
+GO
+</file>
+
+<file path="src/main/java/com/proyectoPPI/proyectodb/config/CorsConfig.java">
+package com.proyectoPPI.proyectodb.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.filter.CorsFilter;
+
+import java.util.List;
+
+@Configuration
+public class CorsConfig {
+
+    @Bean
+    public CorsFilter corsFilter() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowedOriginPatterns(List.of("*"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("*"));
+        config.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return new CorsFilter(source);
+    }
+}
+</file>
+
+<file path="src/main/java/com/proyectoPPI/proyectodb/config/GlobalExceptionHandler.java">
+package com.proyectoPPI.proyectodb.config;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import java.util.Map;
+
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<?> handleAny(Exception ex) {
+        return ResponseEntity.status(500).body(Map.of("error", String.valueOf(ex.getMessage())));
+    }
+}
+</file>
+
+<file path="src/main/java/com/proyectoPPI/proyectodb/config/WebConfig.java">
+package com.proyectoPPI.proyectodb.config;
+
+import com.proyectoPPI.proyectodb.security.AuthInterceptor;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+@Configuration
+public class WebConfig implements WebMvcConfigurer {
+
+    private final AuthInterceptor authInterceptor;
+
+    public WebConfig(AuthInterceptor authInterceptor) {
+        this.authInterceptor = authInterceptor;
+    }
+
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(authInterceptor);
+    }
+}
+</file>
+
+<file path="src/main/java/com/proyectoPPI/proyectodb/controllers/AuthController.java">
+package com.proyectoPPI.proyectodb.controllers;
+
+import com.proyectoPPI.proyectodb.db.Db;
+import com.proyectoPPI.proyectodb.security.JwtUtil;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.bcrypt.BCrypt;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api/auth")
+public class AuthController {
+
+    private final Db db;
+    private final JwtUtil jwtUtil;
+
+    @Value("${admin.username}")
+    private String adminUsername;
+
+    @Value("${admin.email}")
+    private String adminEmail;
+
+    public AuthController(Db db, JwtUtil jwtUtil) {
+        this.db = db;
+        this.jwtUtil = jwtUtil;
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody(required = false) Map<String, Object> body) {
+        if (body == null) body = Map.of();
+        String nombreUsuario = asString(body.get("NombreUsuario"));
+        String contrasena = asString(body.get("Contrasena"));
+
+        if (nombreUsuario == null || contrasena == null) {
+            return ResponseEntity.status(400).body(Map.of("error", "NombreUsuario y Contrasena son requeridos"));
+        }
+
+        try {
+            if (!db.isAvailable()) {
+                return ResponseEntity.status(503).body(Map.of("error", "Base de datos no disponible. Intente más tarde."));
+            }
+
+            boolean includeRole = db.hasColumn("Usuarios", "Rol");
+            String selectColumns = includeRole
+                    ? "UsuarioID, NombreUsuario, CorreoElectronico, PasswordHash, PasswordSalt, Activo, EmailVerificado, Rol"
+                    : "UsuarioID, NombreUsuario, CorreoElectronico, PasswordHash, PasswordSalt, Activo, EmailVerificado";
+
+            List<Map<String, Object>> rows = db.jdbc().queryForList(
+                    "SELECT " + selectColumns + " FROM Usuarios WHERE NombreUsuario = ? OR CorreoElectronico = ?",
+                    nombreUsuario, nombreUsuario
+            );
+
+            if (rows.isEmpty()) {
+                return ResponseEntity.status(401).body(Map.of("error", "Usuario o contraseña inválidos"));
+            }
+
+            Map<String, Object> user = rows.get(0);
+
+            boolean activo = Boolean.TRUE.equals(user.get("Activo"));
+            if (!activo) {
+                return ResponseEntity.status(403).body(Map.of("error", "Usuario inactivo"));
+            }
+
+            String passwordHash = (String) user.get("PasswordHash");
+            String passwordSalt = (String) user.get("PasswordSalt");
+
+            boolean passwordMatch;
+            if (isBcryptHash(passwordHash)) {
+                passwordMatch = BCrypt.checkpw(contrasena, passwordHash);
+            } else {
+                String hashFromSalt = sha512((passwordSalt == null ? "" : passwordSalt) + contrasena);
+                String hashFromSaltAlt = sha512(contrasena + (passwordSalt == null ? "" : passwordSalt));
+                passwordMatch = hashFromSalt.equals(passwordHash) || hashFromSaltAlt.equals(passwordHash);
+            }
+
+            if (!passwordMatch) {
+                return ResponseEntity.status(401).body(Map.of("error", "Usuario o contraseña inválidos"));
+            }
+
+            String rol = (String) user.get("Rol");
+            if (rol == null) {
+                rol = isAdminUser(user) ? "admin" : "user";
+            }
+
+            Integer usuarioId = (Integer) user.get("UsuarioID");
+            String nombreUsuarioResp = (String) user.get("NombreUsuario");
+            String correo = (String) user.get("CorreoElectronico");
+
+            String token = jwtUtil.generateToken(usuarioId, nombreUsuarioResp, correo, rol);
+
+            Map<String, Object> usuario = new HashMap<>();
+            usuario.put("UsuarioID", usuarioId);
+            usuario.put("NombreUsuario", nombreUsuarioResp);
+            usuario.put("CorreoElectronico", correo);
+            usuario.put("Activo", activo);
+            usuario.put("EmailVerificado", user.get("EmailVerificado"));
+            usuario.put("Rol", rol);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Login correcto");
+            response.put("token", token);
+            response.put("usuario", usuario);
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", String.valueOf(e.getMessage())));
+        }
+    }
+
+    private boolean isBcryptHash(String hash) {
+        return hash != null && hash.startsWith("$2");
+    }
+
+    private boolean isAdminUser(Map<String, Object> user) {
+        return adminUsername.equals(user.get("NombreUsuario")) || adminEmail.equals(user.get("CorreoElectronico"));
+    }
+
+    private String sha512(String input) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-512");
+            byte[] hashBytes = digest.digest(input.getBytes(StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder();
+            for (byte b : hashBytes) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private String asString(Object o) {
+        return o == null ? null : String.valueOf(o);
+    }
+}
+</file>
+
+<file path="src/main/java/com/proyectoPPI/proyectodb/controllers/CursosController.java">
+package com.proyectoPPI.proyectodb.controllers;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.proyectoPPI.proyectodb.db.Db;
+import com.proyectoPPI.proyectodb.security.RequireAdmin;
+import com.proyectoPPI.proyectodb.security.RequireAuth;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.sql.Timestamp;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api/cursos")
+public class CursosController {
+
+    private static final String CURSO_COLUMNS =
+            "CursoID, Titulo, Descripcion, NivelDificultad, ImagenPortada, Idioma, " +
+                    "EstaPublicado, Activo, FechaCreacion, FechaPublicacion, XPRecompensa, InstructorID";
+
+    private final Db db;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    public CursosController(Db db) {
+        this.db = db;
+    }
+
+    @GetMapping
+    public ResponseEntity<?> getCursos() {
+        try {
+            if (!db.isAvailable()) return ResponseEntity.status(503).body(Map.of("error", "Base de datos no disponible"));
+            List<Map<String, Object>> rows = db.jdbc().queryForList(
+                    "SELECT " + CURSO_COLUMNS + " FROM Cursos WHERE EstaPublicado = 1 ORDER BY FechaCreacion DESC");
+            return ResponseEntity.ok(rows);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", String.valueOf(e.getMessage())));
+        }
+    }
+
+    @GetMapping("/all")
+    @RequireAdmin
+    public ResponseEntity<?> getAllCursos() {
+        try {
+            if (!db.isAvailable()) return ResponseEntity.status(503).body(Map.of("error", "Base de datos no disponible"));
+            List<Map<String, Object>> rows = db.jdbc().queryForList(
+                    "SELECT " + CURSO_COLUMNS + " FROM Cursos ORDER BY FechaCreacion DESC");
+            return ResponseEntity.ok(rows);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", String.valueOf(e.getMessage())));
+        }
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getCursoById(@PathVariable int id) {
+        try {
+            if (!db.isAvailable()) return ResponseEntity.status(503).body(Map.of("error", "Base de datos no disponible"));
+            List<Map<String, Object>> rows = db.jdbc().queryForList(
+                    "SELECT " + CURSO_COLUMNS + " FROM Cursos WHERE CursoID = ?", id);
+            if (rows.isEmpty()) return ResponseEntity.status(404).body(Map.of("error", "Curso no encontrado"));
+            return ResponseEntity.ok(rows.get(0));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", String.valueOf(e.getMessage())));
+        }
+    }
+
+    @GetMapping("/{id}/lecciones")
+    @RequireAuth
+    public ResponseEntity<?> getLeccionesByCurso(@PathVariable("id") int cursoId) {
+        try {
+            if (!db.isAvailable()) return ResponseEntity.status(503).body(Map.of("error", "Base de datos no disponible"));
+
+            List<Map<String, Object>> cursoRows = db.jdbc().queryForList(
+                    "SELECT " + CURSO_COLUMNS + " FROM Cursos WHERE CursoID = ?", cursoId);
+            if (cursoRows.isEmpty()) return ResponseEntity.status(404).body(Map.of("error", "Curso no encontrado"));
+
+            Map<String, Object> curso = cursoRows.get(0);
+            if (!Boolean.TRUE.equals(curso.get("Activo"))) {
+                return ResponseEntity.status(403).body(Map.of("error", "Este curso no está disponible actualmente"));
+            }
+
+            List<Map<String, Object>> lecciones = db.jdbc().queryForList(
+                    "SELECT LeccionID, CursoID, Orden, Titulo, Tipo, Contenido, CodigoEjemplo, XPLeccion, FechaCreacion, Preguntas " +
+                            "FROM Lecciones WHERE CursoID = ? ORDER BY Orden", cursoId);
+
+            for (Map<String, Object> lec : lecciones) {
+                Object preguntas = lec.get("Preguntas");
+                if (preguntas instanceof String s && !s.isBlank()) {
+                    lec.put("Preguntas", objectMapper.readValue(s, Object.class));
+                } else {
+                    lec.put("Preguntas", null);
+                }
+            }
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("curso", curso);
+            response.put("lecciones", lecciones);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", String.valueOf(e.getMessage())));
+        }
+    }
+
+    @PostMapping
+    @RequireAdmin
+    public ResponseEntity<?> createCurso(@RequestBody Map<String, Object> body) {
+        String titulo = (String) body.get("Titulo");
+        Object instructorId = body.get("InstructorID");
+
+        if (titulo == null || instructorId == null) {
+            return ResponseEntity.status(400).body(Map.of("error", "Titulo e InstructorID son requeridos"));
+        }
+
+        try {
+            if (!db.isAvailable()) return ResponseEntity.status(503).body(Map.of("error", "Base de datos no disponible"));
+
+            String descripcion = (String) body.get("Descripcion");
+            String nivelDificultad = (String) body.getOrDefault("NivelDificultad", "principiante");
+            String imagenPortada = (String) body.get("ImagenPortada");
+            String idioma = (String) body.getOrDefault("Idioma", "Español");
+            Boolean estaPublicado = body.get("EstaPublicado") != null ? (Boolean) body.get("EstaPublicado") : Boolean.FALSE;
+            Boolean activo = body.get("Activo") != null ? (Boolean) body.get("Activo") : Boolean.FALSE;
+            Integer xpRecompensa = body.get("XPRecompensa") != null ? ((Number) body.get("XPRecompensa")).intValue() : 100;
+
+            Timestamp fechaCreacion = new Timestamp(System.currentTimeMillis());
+            Timestamp fechaPublicacion = Boolean.TRUE.equals(estaPublicado) ? new Timestamp(System.currentTimeMillis()) : null;
+
+            Integer cursoId = db.jdbc().queryForObject(
+                    "INSERT INTO Cursos (Titulo, Descripcion, NivelDificultad, ImagenPortada, Idioma, EstaPublicado, Activo, FechaCreacion, FechaPublicacion, XPRecompensa, InstructorID) " +
+                            "OUTPUT INSERTED.CursoID " +
+                            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    Integer.class,
+                    titulo, descripcion, nivelDificultad, imagenPortada, idioma,
+                    estaPublicado, activo, fechaCreacion, fechaPublicacion, xpRecompensa, instructorId
+            );
+
+            return ResponseEntity.status(201).body(Map.of("message", "Curso creado", "CursoID", cursoId));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", String.valueOf(e.getMessage())));
+        }
+    }
+
+    @PutMapping("/{id}")
+    @RequireAdmin
+    public ResponseEntity<?> updateCurso(@PathVariable int id, @RequestBody Map<String, Object> body) {
+        try {
+            if (!db.isAvailable()) return ResponseEntity.status(503).body(Map.of("error", "Base de datos no disponible"));
+
+            String titulo = (String) body.get("Titulo");
+            String descripcion = (String) body.get("Descripcion");
+            String nivelDificultad = (String) body.get("NivelDificultad");
+            String imagenPortada = (String) body.get("ImagenPortada");
+            String idioma = (String) body.get("Idioma");
+            Boolean estaPublicado = body.get("EstaPublicado") != null ? (Boolean) body.get("EstaPublicado") : Boolean.FALSE;
+            Boolean activo = body.get("Activo") != null ? (Boolean) body.get("Activo") : Boolean.FALSE;
+            Integer xpRecompensa = body.get("XPRecompensa") != null ? ((Number) body.get("XPRecompensa")).intValue() : null;
+            Object instructorId = body.get("InstructorID");
+
+            Timestamp fechaPublicacion = null;
+            if (Boolean.TRUE.equals(estaPublicado)) {
+                List<Map<String, Object>> actual = db.jdbc().queryForList(
+                        "SELECT FechaPublicacion FROM Cursos WHERE CursoID = ?", id);
+                Object actualFecha = actual.isEmpty() ? null : actual.get(0).get("FechaPublicacion");
+                fechaPublicacion = actualFecha != null ? (Timestamp) actualFecha : new Timestamp(System.currentTimeMillis());
+            }
+
+            int rows = db.jdbc().update(
+                    "UPDATE Cursos SET " +
+                            "Titulo = COALESCE(?, Titulo), " +
+                            "Descripcion = COALESCE(?, Descripcion), " +
+                            "NivelDificultad = COALESCE(?, NivelDificultad), " +
+                            "ImagenPortada = COALESCE(?, ImagenPortada), " +
+                            "Idioma = COALESCE(?, Idioma), " +
+                            "EstaPublicado = ?, " +
+                            "Activo = ?, " +
+                            "FechaPublicacion = CASE WHEN ? = 1 THEN ? ELSE FechaPublicacion END, " +
+                            "XPRecompensa = COALESCE(?, XPRecompensa), " +
+                            "InstructorID = COALESCE(?, InstructorID) " +
+                            "WHERE CursoID = ?",
+                    titulo, descripcion, nivelDificultad, imagenPortada, idioma,
+                    estaPublicado, activo, estaPublicado, fechaPublicacion, xpRecompensa, instructorId, id
+            );
+
+            if (rows == 0) return ResponseEntity.status(404).body(Map.of("error", "Curso no encontrado"));
+
+            return ResponseEntity.ok(Map.of("message", "Curso actualizado"));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", String.valueOf(e.getMessage())));
+        }
+    }
+
+    @PatchMapping("/{id}/toggle-activo")
+    @RequireAdmin
+    public ResponseEntity<?> toggleActivo(@PathVariable int id) {
+        try {
+            if (!db.isAvailable()) return ResponseEntity.status(503).body(Map.of("error", "Base de datos no disponible"));
+
+            List<Map<String, Object>> rows = db.jdbc().queryForList(
+                    "UPDATE Cursos SET Activo = CASE WHEN Activo = 1 THEN 0 ELSE 1 END " +
+                            "OUTPUT INSERTED.Activo WHERE CursoID = ?", id);
+
+            if (rows.isEmpty()) return ResponseEntity.status(404).body(Map.of("error", "Curso no encontrado"));
+
+            return ResponseEntity.ok(Map.of("message", "Estado actualizado", "Activo", rows.get(0).get("Activo")));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", String.valueOf(e.getMessage())));
+        }
+    }
+
+    @PatchMapping("/{id}/toggle-publicado")
+    @RequireAdmin
+    public ResponseEntity<?> togglePublicado(@PathVariable int id) {
+        try {
+            if (!db.isAvailable()) return ResponseEntity.status(503).body(Map.of("error", "Base de datos no disponible"));
+
+            List<Map<String, Object>> actual = db.jdbc().queryForList(
+                    "SELECT EstaPublicado, FechaPublicacion FROM Cursos WHERE CursoID = ?", id);
+
+            if (actual.isEmpty()) return ResponseEntity.status(404).body(Map.of("error", "Curso no encontrado"));
+
+            boolean estaPublicado = Boolean.TRUE.equals(actual.get(0).get("EstaPublicado"));
+            Object fechaPublicacionActual = actual.get(0).get("FechaPublicacion");
+            Timestamp fechaPublicacion = !estaPublicado
+                    ? (fechaPublicacionActual != null ? (Timestamp) fechaPublicacionActual : new Timestamp(System.currentTimeMillis()))
+                    : (Timestamp) fechaPublicacionActual;
+
+            List<Map<String, Object>> rows = db.jdbc().queryForList(
+                    "UPDATE Cursos SET " +
+                            "EstaPublicado = CASE WHEN EstaPublicado = 1 THEN 0 ELSE 1 END, " +
+                            "FechaPublicacion = CASE WHEN EstaPublicado = 0 THEN ? ELSE FechaPublicacion END " +
+                            "OUTPUT INSERTED.EstaPublicado WHERE CursoID = ?",
+                    fechaPublicacion, id);
+
+            return ResponseEntity.ok(Map.of("message", "Visibilidad actualizada", "EstaPublicado", rows.get(0).get("EstaPublicado")));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", String.valueOf(e.getMessage())));
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    @RequireAdmin
+    public ResponseEntity<?> deleteCurso(@PathVariable int id) {
+        try {
+            if (!db.isAvailable()) return ResponseEntity.status(503).body(Map.of("error", "Base de datos no disponible"));
+            int rows = db.jdbc().update("DELETE FROM Cursos WHERE CursoID = ?", id);
+            if (rows == 0) return ResponseEntity.status(404).body(Map.of("error", "Curso no encontrado"));
+            return ResponseEntity.ok(Map.of("message", "Curso eliminado"));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", String.valueOf(e.getMessage())));
+        }
+    }
+}
+</file>
+
+<file path="src/main/java/com/proyectoPPI/proyectodb/controllers/LeccionesController.java">
+package com.proyectoPPI.proyectodb.controllers;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.proyectoPPI.proyectodb.db.Db;
+import com.proyectoPPI.proyectodb.security.RequireAdmin;
+import com.proyectoPPI.proyectodb.security.RequireAuth;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.sql.Timestamp;
+import java.util.List;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api/lecciones")
+public class LeccionesController {
+
+    private static final String LECCION_COLUMNS =
+            "LeccionID, CursoID, Orden, Titulo, Tipo, Contenido, CodigoEjemplo, XPLeccion, FechaCreacion, Preguntas";
+
+    private final Db db;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    public LeccionesController(Db db) {
+        this.db = db;
+    }
+
+    private void parsePreguntas(Map<String, Object> row) throws Exception {
+        Object preguntas = row.get("Preguntas");
+        if (preguntas instanceof String s && !s.isBlank()) {
+            row.put("Preguntas", objectMapper.readValue(s, Object.class));
+        } else {
+            row.put("Preguntas", null);
+        }
+    }
+
+    @GetMapping
+    @RequireAdmin
+    public ResponseEntity<?> getLecciones() {
+        try {
+            if (!db.isAvailable()) return ResponseEntity.status(503).body(Map.of("error", "Base de datos no disponible"));
+            List<Map<String, Object>> rows = db.jdbc().queryForList(
+                    "SELECT " + LECCION_COLUMNS + " FROM Lecciones ORDER BY CursoID, ISNULL(Orden, LeccionID)");
+            for (Map<String, Object> row : rows) parsePreguntas(row);
+            return ResponseEntity.ok(rows);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", String.valueOf(e.getMessage())));
+        }
+    }
+
+    @GetMapping("/{id}")
+    @RequireAuth
+    public ResponseEntity<?> getLeccionById(@PathVariable int id) {
+        try {
+            if (!db.isAvailable()) return ResponseEntity.status(503).body(Map.of("error", "Base de datos no disponible"));
+            List<Map<String, Object>> rows = db.jdbc().queryForList(
+                    "SELECT " + LECCION_COLUMNS + " FROM Lecciones WHERE LeccionID = ?", id);
+            if (rows.isEmpty()) return ResponseEntity.status(404).body(Map.of("error", "Lección no encontrada"));
+            Map<String, Object> leccion = rows.get(0);
+            parsePreguntas(leccion);
+            return ResponseEntity.ok(leccion);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", String.valueOf(e.getMessage())));
+        }
+    }
+
+    @PostMapping
+    @RequireAdmin
+    public ResponseEntity<?> createLeccion(@RequestBody Map<String, Object> body) throws Exception {
+        Object cursoId = body.get("CursoID");
+        String titulo = (String) body.get("Titulo");
+        String tipo = (String) body.get("Tipo");
+
+        if (cursoId == null || titulo == null || tipo == null) {
+            return ResponseEntity.status(400).body(Map.of("error", "CursoID, Titulo y Tipo son requeridos"));
+        }
+
+        try {
+            if (!db.isAvailable()) return ResponseEntity.status(503).body(Map.of("error", "Base de datos no disponible"));
+
+            List<Map<String, Object>> cursoCheck = db.jdbc().queryForList(
+                    "SELECT CursoID FROM Cursos WHERE CursoID = ?", cursoId);
+            if (cursoCheck.isEmpty()) return ResponseEntity.status(404).body(Map.of("error", "El curso especificado no existe"));
+
+            Integer orden = body.get("Orden") != null ? ((Number) body.get("Orden")).intValue() : 1;
+            String contenido = (String) body.get("Contenido");
+            String codigoEjemplo = (String) body.get("CodigoEjemplo");
+            Integer xpLeccion = body.get("XPLeccion") != null ? ((Number) body.get("XPLeccion")).intValue() : 50;
+            Object preguntas = body.get("Preguntas");
+            String preguntasJson = preguntas != null ? objectMapper.writeValueAsString(preguntas) : null;
+            Timestamp fechaCreacion = new Timestamp(System.currentTimeMillis());
+
+            Integer leccionId = db.jdbc().queryForObject(
+                    "INSERT INTO Lecciones (CursoID, Orden, Titulo, Tipo, Contenido, CodigoEjemplo, XPLeccion, FechaCreacion, Preguntas) " +
+                            "OUTPUT INSERTED.LeccionID VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                    Integer.class,
+                    cursoId, orden, titulo, tipo, contenido, codigoEjemplo, xpLeccion, fechaCreacion, preguntasJson
+            );
+
+            return ResponseEntity.status(201).body(Map.of("message", "Lección creada", "LeccionID", leccionId));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", String.valueOf(e.getMessage())));
+        }
+    }
+
+    @PutMapping("/{id}")
+    @RequireAdmin
+    public ResponseEntity<?> updateLeccion(@PathVariable int id, @RequestBody Map<String, Object> body) throws Exception {
+        String titulo = (String) body.get("Titulo");
+        String tipo = (String) body.get("Tipo");
+
+        if (titulo == null || tipo == null) {
+            return ResponseEntity.status(400).body(Map.of("error", "Titulo y Tipo son requeridos"));
+        }
+
+        try {
+            if (!db.isAvailable()) return ResponseEntity.status(503).body(Map.of("error", "Base de datos no disponible"));
+
+            List<Map<String, Object>> leccionCheck = db.jdbc().queryForList(
+                    "SELECT LeccionID FROM Lecciones WHERE LeccionID = ?", id);
+            if (leccionCheck.isEmpty()) return ResponseEntity.status(404).body(Map.of("error", "Lección no encontrada"));
+
+            Object cursoId = body.get("CursoID");
+            if (cursoId != null) {
+                List<Map<String, Object>> cursoCheck = db.jdbc().queryForList(
+                        "SELECT CursoID FROM Cursos WHERE CursoID = ?", cursoId);
+                if (cursoCheck.isEmpty()) return ResponseEntity.status(404).body(Map.of("error", "El curso especificado no existe"));
+            }
+
+            String contenido = (String) body.get("Contenido");
+            String codigoEjemplo = (String) body.get("CodigoEjemplo");
+            Integer xpLeccion = body.get("XPLeccion") != null ? ((Number) body.get("XPLeccion")).intValue() : 50;
+            Object preguntas = body.get("Preguntas");
+            String preguntasJson = preguntas != null ? objectMapper.writeValueAsString(preguntas) : null;
+            Object orden = body.get("Orden");
+
+            StringBuilder query = new StringBuilder(
+                    "UPDATE Lecciones SET Titulo = ?, Tipo = ?, Contenido = ?, CodigoEjemplo = ?, XPLeccion = ?, Preguntas = ?");
+            java.util.List<Object> params = new java.util.ArrayList<>();
+            params.add(titulo);
+            params.add(tipo);
+            params.add(contenido);
+            params.add(codigoEjemplo);
+            params.add(xpLeccion);
+            params.add(preguntasJson);
+
+            if (cursoId != null) {
+                query.append(", CursoID = ?");
+                params.add(cursoId);
+            }
+            if (orden != null) {
+                query.append(", Orden = ?");
+                params.add(((Number) orden).intValue());
+            }
+            query.append(" WHERE LeccionID = ?");
+            params.add(id);
+
+            db.jdbc().update(query.toString(), params.toArray());
+            return ResponseEntity.ok(Map.of("message", "Lección actualizada"));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", String.valueOf(e.getMessage())));
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    @RequireAdmin
+    public ResponseEntity<?> deleteLeccion(@PathVariable int id) {
+        try {
+            if (!db.isAvailable()) return ResponseEntity.status(503).body(Map.of("error", "Base de datos no disponible"));
+            int rows = db.jdbc().update("DELETE FROM Lecciones WHERE LeccionID = ?", id);
+            if (rows == 0) return ResponseEntity.status(404).body(Map.of("error", "Lección no encontrada"));
+            return ResponseEntity.ok(Map.of("message", "Lección eliminada"));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", String.valueOf(e.getMessage())));
+        }
+    }
+}
+</file>
+
+<file path="src/main/java/com/proyectoPPI/proyectodb/controllers/UsuariosController.java">
+package com.proyectoPPI.proyectodb.controllers;
+
+import com.proyectoPPI.proyectodb.db.Db;
+import com.proyectoPPI.proyectodb.security.RequireAdmin;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.bcrypt.BCrypt;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api/usuarios")
+public class UsuariosController {
+
+    private final Db db;
+
+    @Value("${admin.username}")
+    private String adminUsername;
+    @Value("${admin.email}")
+    private String adminEmail;
+    @Value("${admin.password}")
+    private String adminPassword;
+    @Value("${admin.nombre}")
+    private String adminNombre;
+    @Value("${admin.apellido}")
+    private String adminApellido;
+
+    public UsuariosController(Db db) {
+        this.db = db;
+    }
+
+    private String selectColumns() {
+        boolean includeRole = db.hasColumn("Usuarios", "Rol");
+        return includeRole
+                ? "UsuarioID, Nombre, Apellido, NombreUsuario, CorreoElectronico, Activo, EmailVerificado, Rol"
+                : "UsuarioID, Nombre, Apellido, NombreUsuario, CorreoElectronico, Activo, EmailVerificado";
+    }
+
+    @GetMapping
+    @RequireAdmin
+    public ResponseEntity<?> getUsuarios() {
+        try {
+            if (!db.isAvailable()) return ResponseEntity.status(503).body(Map.of("error", "Base de datos no disponible"));
+            List<Map<String, Object>> rows = db.jdbc().queryForList("SELECT " + selectColumns() + " FROM Usuarios");
+            return ResponseEntity.ok(rows);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", String.valueOf(e.getMessage())));
+        }
+    }
+
+    @GetMapping("/{id}")
+    @RequireAdmin
+    public ResponseEntity<?> getUsuarioById(@PathVariable int id) {
+        try {
+            if (!db.isAvailable()) return ResponseEntity.status(503).body(Map.of("error", "Base de datos no disponible"));
+            List<Map<String, Object>> rows = db.jdbc().queryForList(
+                    "SELECT " + selectColumns() + " FROM Usuarios WHERE UsuarioID = ?", id);
+            if (rows.isEmpty()) return ResponseEntity.status(404).body(Map.of("error", "Usuario no encontrado"));
+            return ResponseEntity.ok(rows.get(0));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", String.valueOf(e.getMessage())));
+        }
+    }
+
+    @PostMapping
+    public ResponseEntity<?> createUsuario(@RequestBody Map<String, Object> body) {
+        String nombreUsuario = (String) body.get("NombreUsuario");
+        String correoElectronico = (String) body.get("CorreoElectronico");
+        String contrasena = (String) body.get("Contrasena");
+        String nombre = (String) body.getOrDefault("Nombre", "");
+        String apellido = (String) body.getOrDefault("Apellido", "");
+
+        if (nombreUsuario == null || correoElectronico == null || contrasena == null) {
+            return ResponseEntity.status(400).body(Map.of("error", "NombreUsuario, CorreoElectronico y Contrasena son requeridos"));
+        }
+
+        try {
+            String salt = BCrypt.gensalt(10);
+            String hash = BCrypt.hashpw(contrasena, salt);
+
+            if (!db.isAvailable()) return ResponseEntity.status(503).body(Map.of("error", "Base de datos no disponible"));
+            boolean hasRoleColumn = db.hasColumn("Usuarios", "Rol");
+
+            Integer usuarioId;
+            if (hasRoleColumn) {
+                usuarioId = db.jdbc().queryForObject(
+                        "INSERT INTO Usuarios (Nombre, Apellido, CorreoElectronico, NombreUsuario, PasswordHash, PasswordSalt, AceptaTerminos, Activo, EmailVerificado, Rol) " +
+                                "OUTPUT INSERTED.UsuarioID VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        Integer.class,
+                        nombre, apellido, correoElectronico, nombreUsuario, hash, salt, false, true, false, "user"
+                );
+            } else {
+                usuarioId = db.jdbc().queryForObject(
+                        "INSERT INTO Usuarios (Nombre, Apellido, CorreoElectronico, NombreUsuario, PasswordHash, PasswordSalt, AceptaTerminos, Activo, EmailVerificado) " +
+                                "OUTPUT INSERTED.UsuarioID VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        Integer.class,
+                        nombre, apellido, correoElectronico, nombreUsuario, hash, salt, false, true, false
+                );
+            }
+
+            return ResponseEntity.status(201).body(Map.of("message", "Usuario creado", "UsuarioID", usuarioId));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", String.valueOf(e.getMessage())));
+        }
+    }
+
+    @PutMapping("/{id}")
+    @RequireAdmin
+    public ResponseEntity<?> updateUsuario(@PathVariable int id, @RequestBody Map<String, Object> body) {
+        try {
+            if (!db.isAvailable()) return ResponseEntity.status(503).body(Map.of("error", "Base de datos no disponible"));
+
+            String nombre = (String) body.getOrDefault("Nombre", "");
+            String apellido = (String) body.getOrDefault("Apellido", "");
+            String nombreUsuario = (String) body.get("NombreUsuario");
+            String correoElectronico = (String) body.get("CorreoElectronico");
+            Boolean activo = body.get("Activo") != null ? (Boolean) body.get("Activo") : Boolean.TRUE;
+            Boolean emailVerificado = body.get("EmailVerificado") != null ? (Boolean) body.get("EmailVerificado") : Boolean.FALSE;
+            Object rol = body.get("Rol");
+
+            boolean hasRoleColumn = db.hasColumn("Usuarios", "Rol");
+
+            if (hasRoleColumn && rol != null) {
+                db.jdbc().update(
+                        "UPDATE Usuarios SET Nombre = ?, Apellido = ?, NombreUsuario = ?, CorreoElectronico = ?, Activo = ?, EmailVerificado = ?, Rol = ? WHERE UsuarioID = ?",
+                        nombre, apellido, nombreUsuario, correoElectronico, activo, emailVerificado, rol, id
+                );
+            } else {
+                db.jdbc().update(
+                        "UPDATE Usuarios SET Nombre = ?, Apellido = ?, NombreUsuario = ?, CorreoElectronico = ?, Activo = ?, EmailVerificado = ? WHERE UsuarioID = ?",
+                        nombre, apellido, nombreUsuario, correoElectronico, activo, emailVerificado, id
+                );
+            }
+
+            return ResponseEntity.ok(Map.of("message", "Usuario actualizado"));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", String.valueOf(e.getMessage())));
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    @RequireAdmin
+    public ResponseEntity<?> deleteUsuario(@PathVariable int id) {
+        try {
+            if (!db.isAvailable()) return ResponseEntity.status(503).body(Map.of("error", "Base de datos no disponible"));
+            db.jdbc().update("DELETE FROM Usuarios WHERE UsuarioID = ?", id);
+            return ResponseEntity.ok(Map.of("message", "Usuario eliminado"));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", String.valueOf(e.getMessage())));
+        }
+    }
+
+    public void seedAdminUser() {
+        try {
+            if (!db.isAvailable()) {
+                System.out.println("No se pudo inicializar la conexión a la base de datos. No se creó el usuario administrador.");
+                return;
+            }
+
+            List<Map<String, Object>> existing = db.jdbc().queryForList(
+                    "SELECT UsuarioID FROM Usuarios WHERE NombreUsuario = ? OR CorreoElectronico = ?",
+                    adminUsername, adminEmail
+            );
+
+            if (!existing.isEmpty()) {
+                return;
+            }
+
+            String passwordSalt = BCrypt.gensalt(10);
+            String passwordHash = BCrypt.hashpw(adminPassword, passwordSalt);
+
+            boolean includeRole = db.hasColumn("Usuarios", "Rol");
+
+            if (includeRole) {
+                db.jdbc().update(
+                        "INSERT INTO Usuarios (Nombre, Apellido, CorreoElectronico, NombreUsuario, PasswordHash, PasswordSalt, AceptaTerminos, Activo, EmailVerificado, Rol) " +
+                                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        adminNombre, adminApellido, adminEmail, adminUsername, passwordHash, passwordSalt, false, true, true, "admin"
+                );
+            } else {
+                db.jdbc().update(
+                        "INSERT INTO Usuarios (Nombre, Apellido, CorreoElectronico, NombreUsuario, PasswordHash, PasswordSalt, AceptaTerminos, Activo, EmailVerificado) " +
+                                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        adminNombre, adminApellido, adminEmail, adminUsername, passwordHash, passwordSalt, false, true, true
+                );
+            }
+
+            System.out.println("Usuario administrador creado: " + adminUsername);
+        } catch (Exception error) {
+            System.out.println("Error al crear usuario administrador: " + error.getMessage());
+        }
+    }
+}
+</file>
+
+<file path="src/main/java/com/proyectoPPI/proyectodb/db/Db.java">
+package com.proyectoPPI.proyectodb.db;
+
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Component;
+
+@Component
+public class Db {
+
+    private final JdbcTemplate jdbcTemplate;
+
+    public Db(JdbcTemplate jdbcTemplate) {
+        this.jdbcTemplate = jdbcTemplate;
+    }
+
+    public JdbcTemplate jdbc() {
+        return jdbcTemplate;
+    }
+
+    public boolean isAvailable() {
+        try {
+            jdbcTemplate.execute("SELECT 1");
+            return true;
+        } catch (Exception error) {
+            System.out.println("Error en la conexion: " + error.getMessage());
+            return false;
+        }
+    }
+
+    public boolean hasColumn(String tableName, String columnName) {
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = ? AND COLUMN_NAME = ?",
+                Integer.class, tableName, columnName
+        );
+        return count != null && count > 0;
+    }
+}
+</file>
+
+<file path="src/main/java/com/proyectoPPI/proyectodb/security/AuthInterceptor.java">
+package com.proyectoPPI.proyectodb.security;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+import org.springframework.web.method.HandlerMethod;
+import org.springframework.web.servlet.HandlerInterceptor;
+
+import java.io.IOException;
+import java.util.Map;
+
+@Component
+public class AuthInterceptor implements HandlerInterceptor {
+
+    private final JwtUtil jwtUtil;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    @Value("${admin.username}")
+    private String adminUsername;
+
+    @Value("${admin.email}")
+    private String adminEmail;
+
+    public AuthInterceptor(JwtUtil jwtUtil) {
+        this.jwtUtil = jwtUtil;
+    }
+
+    @Override
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws IOException {
+        if (!(handler instanceof HandlerMethod handlerMethod)) {
+            return true;
+        }
+
+        boolean requiresAuth = handlerMethod.hasMethodAnnotation(RequireAuth.class)
+                || handlerMethod.hasMethodAnnotation(RequireAdmin.class);
+        if (!requiresAuth) {
+            return true;
+        }
+
+        String authHeader = request.getHeader("Authorization");
+        String token = null;
+        if (authHeader != null) {
+            String[] parts = authHeader.split(" ");
+            if (parts.length == 2) {
+                token = parts[1];
+            }
+        }
+
+        if (token == null) {
+            sendError(response, 401, "Token de acceso requerido");
+            return false;
+        }
+
+        Claims claims;
+        try {
+            claims = jwtUtil.validateToken(token);
+        } catch (JwtException | IllegalArgumentException e) {
+            sendError(response, 403, "Token inválido");
+            return false;
+        }
+
+        request.setAttribute("currentUser", claims);
+
+        if (handlerMethod.hasMethodAnnotation(RequireAdmin.class) && !isAdminUser(claims)) {
+            sendError(response, 403, "Requiere permisos de administrador");
+            return false;
+        }
+
+        return true;
+    }
+
+    private boolean isAdminUser(Claims claims) {
+        String rol = claims.get("Rol", String.class);
+        String nombreUsuario = claims.get("NombreUsuario", String.class);
+        String correoElectronico = claims.get("CorreoElectronico", String.class);
+        return "admin".equals(rol)
+                || adminUsername.equals(nombreUsuario)
+                || adminEmail.equals(correoElectronico);
+    }
+
+    private void sendError(HttpServletResponse response, int status, String message) throws IOException {
+        response.setStatus(status);
+        response.setContentType("application/json;charset=UTF-8");
+        response.getWriter().write(objectMapper.writeValueAsString(Map.of("error", message)));
+    }
+}
+</file>
+
+<file path="src/main/java/com/proyectoPPI/proyectodb/security/JwtUtil.java">
+package com.proyectoPPI.proyectodb.security;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+
+
+@Component
+public class JwtUtil {
+
+    private static final long EXPIRATION_MS = 24L * 60 * 60 * 1000;
+
+    private final SecretKey key;
+
+    public JwtUtil(@Value("${jwt.secret}") String secret) {
+        byte[] bytes = secret.getBytes(StandardCharsets.UTF_8);
+        if (bytes.length < 32) {
+            byte[] padded = new byte[32];
+            System.arraycopy(bytes, 0, padded, 0, bytes.length);
+            bytes = padded;
+        }
+        this.key = Keys.hmacShaKeyFor(bytes);
+    }
+
+    public String generateToken(Integer usuarioId, String nombreUsuario, String correoElectronico, String rol) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("UsuarioID", usuarioId);
+        claims.put("NombreUsuario", nombreUsuario);
+        claims.put("CorreoElectronico", correoElectronico);
+        claims.put("Rol", rol);
+
+        Date now = new Date();
+        Date expiration = new Date(now.getTime() + EXPIRATION_MS);
+
+        return Jwts.builder()
+                .claims(claims)
+                .issuedAt(now)
+                .expiration(expiration)
+                .signWith(key)
+                .compact();
+    }
+
+    public Claims validateToken(String token) {
+        return Jwts.parser()
+                .verifyWith(key)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+    }
+}
+</file>
+
+<file path="src/main/java/com/proyectoPPI/proyectodb/security/RequireAdmin.java">
+package com.proyectoPPI.proyectodb.security;
+
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface RequireAdmin {
+}
+</file>
+
+<file path="src/main/java/com/proyectoPPI/proyectodb/security/RequireAuth.java">
+package com.proyectoPPI.proyectodb.security;
+
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
+@Target(ElementType.METHOD)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface RequireAuth {
+}
+</file>
+
+<file path="src/main/java/com/proyectoPPI/proyectodb/ProyectodbApplication.java">
+package com.proyectoPPI.proyectodb;
+
+import com.proyectoPPI.proyectodb.controllers.UsuariosController;
+import com.proyectoPPI.proyectodb.db.Db;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Bean;
+
+@SpringBootApplication
+public class ProyectodbApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(ProyectodbApplication.class, args);
+	}
+
+	@Bean
+	public CommandLineRunner onStartup(Db db, UsuariosController usuariosController,
+										@Value("${server.port:4000}") String port) {
+		return args -> {
+			if (db.isAvailable()) {
+				System.out.println("Conectados a la Base de datos");
+			}
+			usuariosController.seedAdminUser();
+			System.out.println("Conectado al puerto " + port);
+		};
+	}
+
+}
+</file>
+
+<file path="src/main/resources/application.properties">
+spring.application.name=proyectodb
+
+server.port=${PORT:4000}
+
+spring.datasource.url=jdbc:sqlserver://${SERVER:localhost}:${DB_PORT:1433};databaseName=${DATABASE:DevGeniusDB};trustServerCertificate=true
+spring.datasource.username=${DB_USER:tdea}
+spring.datasource.password=${DB_PASSWORD:123}
+spring.datasource.driver-class-name=com.microsoft.sqlserver.jdbc.SQLServerDriver
+
+spring.datasource.hikari.connection-timeout=5000
+spring.datasource.hikari.initialization-fail-timeout=-1
+
+jwt.secret=${JWT_SECRET:tu_clave_secreta_aqui}
+
+admin.username=${ADMIN_USERNAME:admin}
+admin.email=${ADMIN_EMAIL:admin@admin.com}
+admin.password=${ADMIN_PASSWORD:Admin123!2026}
+admin.nombre=${ADMIN_NOMBRE:Administrador}
+admin.apellido=${ADMIN_APELLIDO:Sistema}
+
+spring.jackson.default-property-inclusion=non_null
+</file>
+
+<file path="src/test/java/com/proyectoPPI/proyectodb/controllers/AuthControllerTest.java">
+package com.proyectoPPI.proyectodb.controllers;
+
+import com.proyectoPPI.proyectodb.db.Db;
+import com.proyectoPPI.proyectodb.security.JwtUtil;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.crypto.bcrypt.BCrypt;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+/**
+ * Pruebas unitarias para el endpoint /api/auth/login. Se simulan Db y
+ * JwtUtil para poder validar cada rama del metodo login() sin necesitar
+ * una base de datos real, segun el dato (usuario/contrasena) recibido.
+ */
+class AuthControllerTest {
+
+    private Db db;
+    private JdbcTemplate jdbcTemplate;
+    private JwtUtil jwtUtil;
+    private AuthController controller;
+
+    @BeforeEach
+    void setUp() {
+        db = mock(Db.class);
+        jdbcTemplate = mock(JdbcTemplate.class);
+        jwtUtil = mock(JwtUtil.class);
+        when(db.jdbc()).thenReturn(jdbcTemplate);
+
+        controller = new AuthController(db, jwtUtil);
+        ReflectionTestUtils.setField(controller, "adminUsername", "admin");
+        ReflectionTestUtils.setField(controller, "adminEmail", "admin@admin.com");
+    }
+
+    private Map<String, Object> usuarioBase(String hash, String salt, boolean activo, String rol) {
+        Map<String, Object> usuario = new HashMap<>();
+        usuario.put("UsuarioID", 1);
+        usuario.put("NombreUsuario", "juan");
+        usuario.put("CorreoElectronico", "juan@test.com");
+        usuario.put("PasswordHash", hash);
+        usuario.put("PasswordSalt", salt);
+        usuario.put("Activo", activo);
+        usuario.put("EmailVerificado", true);
+        usuario.put("Rol", rol);
+        return usuario;
+    }
+
+    @Test
+    void login_devuelve400SiFaltaNombreUsuario() {
+        ResponseEntity<?> respuesta = controller.login(Map.of("Contrasena", "123"));
+
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(400);
+    }
+
+    @Test
+    void login_devuelve400SiElCuerpoDeLaPeticionEsNulo() {
+        ResponseEntity<?> respuesta = controller.login(null);
+
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(400);
+    }
+
+    @Test
+    void login_devuelve503SiLaBaseDeDatosNoEstaDisponible() {
+        when(db.isAvailable()).thenReturn(false);
+
+        ResponseEntity<?> respuesta = controller.login(Map.of("NombreUsuario", "juan", "Contrasena", "123"));
+
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(503);
+    }
+
+    @Test
+    void login_devuelve401SiElUsuarioNoExiste() {
+        when(db.isAvailable()).thenReturn(true);
+        when(db.hasColumn("Usuarios", "Rol")).thenReturn(true);
+        when(jdbcTemplate.queryForList(anyString(), any(Object[].class))).thenReturn(List.of());
+
+        ResponseEntity<?> respuesta = controller.login(Map.of("NombreUsuario", "noexiste", "Contrasena", "123"));
+
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(401);
+    }
+
+    @Test
+    void login_devuelve403SiElUsuarioEstaInactivo() {
+        String hash = BCrypt.hashpw("123456", BCrypt.gensalt());
+        when(db.isAvailable()).thenReturn(true);
+        when(db.hasColumn("Usuarios", "Rol")).thenReturn(true);
+        when(jdbcTemplate.queryForList(anyString(), any(Object[].class)))
+                .thenReturn(List.of(usuarioBase(hash, "", false, "user")));
+
+        ResponseEntity<?> respuesta = controller.login(Map.of("NombreUsuario", "juan", "Contrasena", "123456"));
+
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(403);
+    }
+
+    @Test
+    void login_devuelve401SiLaContrasenaEsIncorrecta() {
+        String hash = BCrypt.hashpw("correcta", BCrypt.gensalt());
+        when(db.isAvailable()).thenReturn(true);
+        when(db.hasColumn("Usuarios", "Rol")).thenReturn(true);
+        when(jdbcTemplate.queryForList(anyString(), any(Object[].class)))
+                .thenReturn(List.of(usuarioBase(hash, "", true, "user")));
+
+        ResponseEntity<?> respuesta = controller.login(Map.of("NombreUsuario", "juan", "Contrasena", "incorrecta"));
+
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(401);
+    }
+
+    @Test
+    void login_devuelve500SiOcurreUnaExcepcionInesperada() {
+        when(db.isAvailable()).thenThrow(new RuntimeException("fallo de conexion"));
+
+        ResponseEntity<?> respuesta = controller.login(Map.of("NombreUsuario", "juan", "Contrasena", "123"));
+
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(500);
+    }
+
+}
+</file>
+
+<file path="src/test/java/com/proyectoPPI/proyectodb/controllers/UsuariosControllerTest.java">
+package com.proyectoPPI.proyectodb.controllers;
+
+import com.proyectoPPI.proyectodb.db.Db;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+/**
+ * Pruebas unitarias para UsuariosController, incluyendo el metodo
+ * seedAdminUser() que se ejecuta al arrancar la aplicacion.
+ */
+class UsuariosControllerTest {
+
+    private Db db;
+    private JdbcTemplate jdbcTemplate;
+    private UsuariosController controller;
+
+    @BeforeEach
+    void setUp() {
+        db = mock(Db.class);
+        jdbcTemplate = mock(JdbcTemplate.class);
+        when(db.jdbc()).thenReturn(jdbcTemplate);
+        controller = new UsuariosController(db);
+
+        ReflectionTestUtils.setField(controller, "adminUsername", "admin");
+        ReflectionTestUtils.setField(controller, "adminEmail", "admin@admin.com");
+        ReflectionTestUtils.setField(controller, "adminPassword", "Admin123!2026");
+        ReflectionTestUtils.setField(controller, "adminNombre", "Administrador");
+        ReflectionTestUtils.setField(controller, "adminApellido", "Sistema");
+    }
+
+    @Test
+    void getUsuarios_devuelve503SiLaBaseDeDatosNoEstaDisponible() {
+        when(db.isAvailable()).thenReturn(false);
+
+        ResponseEntity<?> respuesta = controller.getUsuarios();
+
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(503);
+    }
+
+    @Test
+    void getUsuarios_devuelve200ConLaListaDeUsuarios() {
+        when(db.isAvailable()).thenReturn(true);
+        when(db.hasColumn("Usuarios", "Rol")).thenReturn(true);
+        when(jdbcTemplate.queryForList(anyString())).thenReturn(List.of(Map.of("UsuarioID", 1)));
+
+        ResponseEntity<?> respuesta = controller.getUsuarios();
+
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(200);
+        assertThat((List<?>) respuesta.getBody()).hasSize(1);
+    }
+
+    @Test
+    void getUsuarioById_devuelve404SiNoExiste() {
+        when(db.isAvailable()).thenReturn(true);
+        when(db.hasColumn("Usuarios", "Rol")).thenReturn(true);
+        when(jdbcTemplate.queryForList(anyString(), eq(5))).thenReturn(List.of());
+
+        ResponseEntity<?> respuesta = controller.getUsuarioById(5);
+
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(404);
+    }
+
+    @Test
+    void getUsuarioById_devuelve200SiExiste() {
+        when(db.isAvailable()).thenReturn(true);
+        when(db.hasColumn("Usuarios", "Rol")).thenReturn(false);
+        when(jdbcTemplate.queryForList(anyString(), eq(1)))
+                .thenReturn(List.of(Map.of("UsuarioID", 1, "NombreUsuario", "juan")));
+
+        ResponseEntity<?> respuesta = controller.getUsuarioById(1);
+
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(200);
+    }
+
+    @Test
+    void createUsuario_devuelve400SiFaltanCamposObligatorios() {
+        ResponseEntity<?> respuesta = controller.createUsuario(Map.of("NombreUsuario", "juan"));
+
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(400);
+    }
+
+    @Test
+    void createUsuario_devuelve503SiLaBaseDeDatosNoEstaDisponible() {
+        when(db.isAvailable()).thenReturn(false);
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("NombreUsuario", "juan");
+        body.put("CorreoElectronico", "juan@test.com");
+        body.put("Contrasena", "clave123");
+
+        ResponseEntity<?> respuesta = controller.createUsuario(body);
+
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(503);
+    }
+
+    @Test
+    void createUsuario_devuelve201YElIdGeneradoConDatosValidos() {
+        when(db.isAvailable()).thenReturn(true);
+        when(db.hasColumn("Usuarios", "Rol")).thenReturn(true);
+        when(jdbcTemplate.queryForObject(anyString(), eq(Integer.class), any(Object[].class)))
+                .thenReturn(7);
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("NombreUsuario", "juan");
+        body.put("CorreoElectronico", "juan@test.com");
+        body.put("Contrasena", "clave123");
+
+        ResponseEntity<?> respuesta = controller.createUsuario(body);
+
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(201);
+        Map<?, ?> cuerpo = (Map<?, ?>) respuesta.getBody();
+        assertThat(cuerpo.get("UsuarioID")).isEqualTo(7);
+    }
+
+    @Test
+    void deleteUsuario_devuelve503SiLaBaseDeDatosNoEstaDisponible() {
+        when(db.isAvailable()).thenReturn(false);
+
+        ResponseEntity<?> respuesta = controller.deleteUsuario(1);
+
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(503);
+    }
+
+    @Test
+    void deleteUsuario_devuelve200CuandoLaOperacionSeCompleta() {
+        when(db.isAvailable()).thenReturn(true);
+
+        ResponseEntity<?> respuesta = controller.deleteUsuario(1);
+
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(200);
+    }
+
+    @Test
+    void seedAdminUser_noHaceNadaSiLaBaseDeDatosNoEstaDisponible() {
+        when(db.isAvailable()).thenReturn(false);
+
+        controller.seedAdminUser();
+
+        verify(jdbcTemplate, never()).queryForList(anyString(), any(Object[].class));
+        verify(jdbcTemplate, never()).update(anyString(), any(Object[].class));
+    }
+
+    @Test
+    void seedAdminUser_noCreaUnDuplicadoSiElAdminYaExiste() {
+        when(db.isAvailable()).thenReturn(true);
+        when(jdbcTemplate.queryForList(anyString(), eq("admin"), eq("admin@admin.com")))
+                .thenReturn(List.of(Map.of("UsuarioID", 1)));
+
+        controller.seedAdminUser();
+
+        verify(jdbcTemplate, never()).update(anyString(), any(Object[].class));
+    }
+
+    @Test
+    void seedAdminUser_creaElUsuarioAdminSiAunNoExiste() {
+        when(db.isAvailable()).thenReturn(true);
+        when(jdbcTemplate.queryForList(anyString(), eq("admin"), eq("admin@admin.com")))
+                .thenReturn(List.of());
+        when(db.hasColumn("Usuarios", "Rol")).thenReturn(true);
+
+        controller.seedAdminUser();
+
+        verify(jdbcTemplate, times(1)).update(anyString(), any(Object[].class));
+    }
+}
+</file>
+
+<file path="src/test/java/com/proyectoPPI/proyectodb/db/DbTest.java">
+package com.proyectoPPI.proyectodb.db;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.jdbc.core.JdbcTemplate;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+/**
+ * Pruebas unitarias de {@link Db}. Se simula (mock) el JdbcTemplate para no
+ * necesitar una base de datos real: cada prueba valida un comportamiento
+ * distinto segun la respuesta simulada del JdbcTemplate.
+ */
+class DbTest {
+
+    private JdbcTemplate jdbcTemplate;
+    private Db db;
+
+    @BeforeEach
+    void setUp() {
+        jdbcTemplate = mock(JdbcTemplate.class);
+        db = new Db(jdbcTemplate);
+    }
+
+    @Test
+    void jdbc_devuelveElJdbcTemplateInyectado() {
+        assertThat(db.jdbc()).isSameAs(jdbcTemplate);
+    }
+
+    @Test
+    void isAvailable_devuelveTrueCuandoLaVerificacionNoFalla() {
+        boolean disponible = db.isAvailable();
+
+        assertThat(disponible).isTrue();
+        verify(jdbcTemplate).execute("SELECT 1");
+    }
+
+    @Test
+    void isAvailable_devuelveFalseCuandoLaConexionFalla() {
+        doThrow(new RuntimeException("timeout de conexion")).when(jdbcTemplate).execute("SELECT 1");
+
+        boolean disponible = db.isAvailable();
+
+        assertThat(disponible).isFalse();
+    }
+
+    @Test
+    void hasColumn_devuelveTrueCuandoLaColumnaExiste() {
+        when(jdbcTemplate.queryForObject(anyString(), eq(Integer.class), eq("Usuarios"), eq("Rol")))
+                .thenReturn(1);
+
+        assertThat(db.hasColumn("Usuarios", "Rol")).isTrue();
+    }
+
+    @Test
+    void hasColumn_devuelveFalseCuandoLaColumnaNoExiste() {
+        when(jdbcTemplate.queryForObject(anyString(), eq(Integer.class), eq("Usuarios"), eq("ColumnaFantasma")))
+                .thenReturn(0);
+
+        assertThat(db.hasColumn("Usuarios", "ColumnaFantasma")).isFalse();
+    }
+
+    @Test
+    void hasColumn_devuelveFalseCuandoElConteoEsNulo() {
+        when(jdbcTemplate.queryForObject(anyString(), eq(Integer.class), eq("Usuarios"), eq("Rol")))
+                .thenReturn(null);
+
+        assertThat(db.hasColumn("Usuarios", "Rol")).isFalse();
+    }
+}
+</file>
+
+<file path="src/test/java/com/proyectoPPI/proyectodb/security/AuthInterceptorTest.java">
+package com.proyectoPPI.proyectodb.security;
+
+import io.jsonwebtoken.JwtException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.method.HandlerMethod;
+
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.lang.reflect.Method;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
+
+/**
+ * Pruebas unitarias de {@link AuthInterceptor}. Se simula JwtUtil y las
+ * peticiones/respuestas HTTP; se usa un controlador de prueba con metodos
+ * anotados con @RequireAuth/@RequireAdmin para poder construir HandlerMethod
+ * reales, tal como lo hace Spring MVC en tiempo de ejecucion.
+ */
+class AuthInterceptorTest {
+
+    static class ControladorDePrueba {
+        public void endpointPublico() {
+        }
+
+        @RequireAuth
+        public void endpointRequiereLogin() {
+        }
+
+        @RequireAdmin
+        public void endpointRequiereAdmin() {
+        }
+    }
+
+    private JwtUtil jwtUtil;
+    private AuthInterceptor interceptor;
+    private HttpServletRequest request;
+    private HttpServletResponse response;
+    private StringWriter cuerpoRespuesta;
+
+    @BeforeEach
+    void setUp() throws Exception {
+        jwtUtil = mock(JwtUtil.class);
+        interceptor = new AuthInterceptor(jwtUtil);
+        ReflectionTestUtils.setField(interceptor, "adminUsername", "admin");
+        ReflectionTestUtils.setField(interceptor, "adminEmail", "admin@admin.com");
+
+        request = mock(HttpServletRequest.class);
+        response = mock(HttpServletResponse.class);
+        cuerpoRespuesta = new StringWriter();
+        when(response.getWriter()).thenReturn(new PrintWriter(cuerpoRespuesta));
+    }
+
+    private HandlerMethod handlerMethodPara(String nombreMetodo) throws NoSuchMethodException {
+        Method metodo = ControladorDePrueba.class.getMethod(nombreMetodo);
+        return new HandlerMethod(new ControladorDePrueba(), metodo);
+    }
+
+    @Test
+    void preHandle_permiteContinuarSiElHandlerNoEsUnHandlerMethod() throws Exception {
+        boolean resultado = interceptor.preHandle(request, response, new Object());
+
+        assertThat(resultado).isTrue();
+    }
+
+    @Test
+    void preHandle_permiteContinuarSiElEndpointNoRequiereAutenticacion() throws Exception {
+        boolean resultado = interceptor.preHandle(request, response, handlerMethodPara("endpointPublico"));
+
+        assertThat(resultado).isTrue();
+        verifyNoInteractions(jwtUtil);
+    }
+
+    @Test
+    void preHandle_rechazaConCuandoNoVieneElHeaderAuthorization() throws Exception {
+        when(request.getHeader("Authorization")).thenReturn(null);
+
+        boolean resultado = interceptor.preHandle(request, response, handlerMethodPara("endpointRequiereLogin"));
+
+        assertThat(resultado).isFalse();
+        verify(response).setStatus(401);
+        assertThat(cuerpoRespuesta.toString()).contains("Token de acceso requerido");
+    }
+
+    @Test
+    void preHandle_rechazaConCuandoElHeaderNoTieneFormatoBearerValido() throws Exception {
+        when(request.getHeader("Authorization")).thenReturn("TokenSinPrefijoBearer");
+
+        boolean resultado = interceptor.preHandle(request, response, handlerMethodPara("endpointRequiereLogin"));
+
+        assertThat(resultado).isFalse();
+        verify(response).setStatus(401);
+    }
+
+    @Test
+    void preHandle_rechazaConCuandoElTokenEsInvalido() throws Exception {
+        when(request.getHeader("Authorization")).thenReturn("Bearer token-invalido");
+        when(jwtUtil.validateToken("token-invalido")).thenThrow(mock(JwtException.class));
+
+        boolean resultado = interceptor.preHandle(request, response, handlerMethodPara("endpointRequiereLogin"));
+
+        assertThat(resultado).isFalse();
+        verify(response).setStatus(403);
+        assertThat(cuerpoRespuesta.toString()).contains("Token inválido");
+    }
+
+}
+</file>
+
+<file path="src/test/java/com/proyectoPPI/proyectodb/security/JwtUtilTest.java">
+package com.proyectoPPI.proyectodb.security;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+/**
+ * Pruebas unitarias de {@link JwtUtil}. No requieren Spring ni base de
+ * datos: se construye la clase directamente con un secreto de prueba.
+ */
+class JwtUtilTest {
+
+    private JwtUtil jwtUtil;
+
+    @BeforeEach
+    void setUp() {
+        jwtUtil = new JwtUtil("clave-secreta-de-prueba-para-los-tests-unitarios");
+    }
+
+    @Test
+    void generateToken_creaUnTokenJwtConTresSegmentos() {
+        String token = jwtUtil.generateToken(1, "usuario1", "correo@test.com", "user");
+
+        assertThat(token).isNotNull().isNotBlank();
+        assertThat(token.split("\\.")).hasSize(3);
+    }
+
+}
+</file>
+
+<file path="src/test/java/com/proyectoPPI/proyectodb/ProyectodbApplicationTests.java">
+package com.proyectoPPI.proyectodb;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+
+@SpringBootTest
+class ProyectodbApplicationTests {
+
+	@Test
+	void contextLoads() {
+	}
+
+}
+</file>
+
+<file path=".dockerignore">
+target/
+!.mvn/wrapper/maven-wrapper.jar
+.git
+.github/
+*.iml
+</file>
+
+<file path="docker-compose.yml">
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "DevGenius_2026!"
+    ports:
+      - "1433:1433"
+      - "4000:4000"   # puerto de la app (comparte la red de este contenedor)
+    volumes:
+      - sqldata:/var/opt/mssql
+      - ./db:/scripts:ro
+    # Arranca SQL Server y crea la base DESDE ADENTRO del mismo contenedor (por localhost)
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        /opt/mssql/bin/sqlservr &
+        PID=$$!
+        trap 'kill -TERM $$PID' TERM INT
+        SQLCMD="/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P $$MSSQL_SA_PASSWORD"
+        for i in $$(seq 1 60); do
+          $$SQLCMD -Q "SELECT 1" >/dev/null 2>&1 && break
+          sleep 2
+        done
+        EXISTE=$$($$SQLCMD -h -1 -W -Q "SET NOCOUNT ON; SELECT CASE WHEN DB_ID('DevGeniusDB') IS NULL THEN 0 ELSE 1 END" | tr -d '[:space:]')
+        if [ "$$EXISTE" = "0" ]; then
+          $$SQLCMD -f 65001 -b -i /scripts/DevGeniusDB.sql && echo ">>> Base de datos DevGeniusDB creada"
+        elif [ "$$EXISTE" = "1" ]; then
+          echo ">>> DevGeniusDB ya existe, no se toca"
+        else
+          echo ">>> ERROR consultando SQL Server (respuesta: $$EXISTE)"
+        fi
+        wait $$PID
+    healthcheck:
+      # Sano solo cuando la base DevGeniusDB ya existe
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P 'DevGenius_2026!' -b -Q \"IF DB_ID('DevGeniusDB') IS NULL RAISERROR('no',16,1)\""]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+
+  app:
+    build: .
+    # Comparte la red del contenedor db: se conectan por localhost
+    network_mode: "service:db"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SERVER: localhost
+      DB_PORT: "1433"
+      DATABASE: DevGeniusDB
+      DB_USER: sa
+      DB_PASSWORD: "DevGenius_2026!"
+      JWT_SECRET: "123456789"
+      # Sin cifrado TLS entre contenedores (evita cuelgues en la red de Codespaces)
+      SPRING_DATASOURCE_URL: "jdbc:sqlserver://localhost:1433;databaseName=DevGeniusDB;encrypt=false;trustServerCertificate=true"
+
+volumes:
+  sqldata:
+</file>
+
+<file path="Dockerfile">
+# --- Etapa de compilación ---
+FROM eclipse-temurin:17-jdk-alpine AS build
+WORKDIR /app
+
+# Instalar Maven en la imagen alpina ligera
+RUN apk add --no-cache maven
+
+# Copiar el pom.xml y descargar dependencias
+COPY pom.xml .
+RUN mvn dependency:go-offline -B
+
+# Copiar el código fuente y empaquetar la app omitiendo pruebas
+COPY src src
+RUN mvn package -DskipTests
+
+# --- Etapa de ejecución ---
+FROM eclipse-temurin:17-jre-alpine
+WORKDIR /app
+
+# Copiar el archivo .jar generado en la etapa anterior
+COPY --from=build /app/target/*.jar app.jar
+
+# El proyecto usa PORT (por defecto 4000) en application.properties
+EXPOSE 4000
+ENTRYPOINT ["java", "-jar", "app.jar"]
+</file>
+
+<file path="HELP.md">
+# Getting Started
+
+### Reference Documentation
+For further reference, please consider the following sections:
+
+* [Official Apache Maven documentation](https://maven.apache.org/guides/index.html)
+* [Spring Boot Maven Plugin Reference Guide](https://docs.spring.io/spring-boot/4.1.1/maven-plugin)
+* [Create an OCI image](https://docs.spring.io/spring-boot/4.1.1/maven-plugin/build-image.html)
+* [Spring Web](https://docs.spring.io/spring-boot/4.1.1/reference/web/servlet.html)
+* [Spring Boot DevTools](https://docs.spring.io/spring-boot/4.1.1/reference/using/devtools.html)
+* [JDBC API](https://docs.spring.io/spring-boot/4.1.1/reference/data/sql.html)
+
+### Guides
+The following guides illustrate how to use some features concretely:
+
+* [Building a RESTful Web Service](https://spring.io/guides/gs/rest-service/)
+* [Serving Web Content with Spring MVC](https://spring.io/guides/gs/serving-web-content/)
+* [Building REST services with Spring](https://spring.io/guides/tutorials/rest/)
+* [Accessing Relational Data using JDBC with Spring](https://spring.io/guides/gs/relational-data-access/)
+* [Managing Transactions](https://spring.io/guides/gs/managing-transactions/)
+
+### Maven Parent overrides
+
+Due to Maven's design, elements are inherited from the parent POM to the project POM.
+While most of the inheritance is fine, it also inherits unwanted elements like `<license>` and `<developers>` from the parent.
+To prevent this, the project POM contains empty overrides for these elements.
+If you manually switch to a different parent and actually want the inheritance, you need to remove those overrides.
+</file>
+
+<file path="mvnw.cmd">
+<# : batch portion
+@REM ----------------------------------------------------------------------------
+@REM Licensed to the Apache Software Foundation (ASF) under one
+@REM or more contributor license agreements.  See the NOTICE file
+@REM distributed with this work for additional information
+@REM regarding copyright ownership.  The ASF licenses this file
+@REM to you under the Apache License, Version 2.0 (the
+@REM "License"); you may not use this file except in compliance
+@REM with the License.  You may obtain a copy of the License at
+@REM
+@REM    http://www.apache.org/licenses/LICENSE-2.0
+@REM
+@REM Unless required by applicable law or agreed to in writing,
+@REM software distributed under the License is distributed on an
+@REM "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+@REM KIND, either express or implied.  See the License for the
+@REM specific language governing permissions and limitations
+@REM under the License.
+@REM ----------------------------------------------------------------------------
+
+@REM ----------------------------------------------------------------------------
+@REM Apache Maven Wrapper startup batch script, version 3.3.4
+@REM
+@REM Optional ENV vars
+@REM   MVNW_REPOURL - repo url base for downloading maven distribution
+@REM   MVNW_USERNAME/MVNW_PASSWORD - user and password for downloading maven
+@REM   MVNW_VERBOSE - true: enable verbose log; others: silence the output
+@REM ----------------------------------------------------------------------------
+
+@IF "%__MVNW_ARG0_NAME__%"=="" (SET __MVNW_ARG0_NAME__=%~nx0)
+@SET __MVNW_CMD__=
+@SET __MVNW_ERROR__=
+@SET __MVNW_PSMODULEP_SAVE=%PSModulePath%
+@SET PSModulePath=
+@FOR /F "usebackq tokens=1* delims==" %%A IN (`powershell -noprofile "& {$scriptDir='%~dp0'; $script='%__MVNW_ARG0_NAME__%'; icm -ScriptBlock ([Scriptblock]::Create((Get-Content -Raw '%~f0'))) -NoNewScope}"`) DO @(
+  IF "%%A"=="MVN_CMD" (set __MVNW_CMD__=%%B) ELSE IF "%%B"=="" (echo %%A) ELSE (echo %%A=%%B)
+)
+@SET PSModulePath=%__MVNW_PSMODULEP_SAVE%
+@SET __MVNW_PSMODULEP_SAVE=
+@SET __MVNW_ARG0_NAME__=
+@SET MVNW_USERNAME=
+@SET MVNW_PASSWORD=
+@IF NOT "%__MVNW_CMD__%"=="" ("%__MVNW_CMD__%" %*)
+@echo Cannot start maven from wrapper >&2 && exit /b 1
+@GOTO :EOF
+: end batch / begin powershell #>
+
+$ErrorActionPreference = "Stop"
+if ($env:MVNW_VERBOSE -eq "true") {
+  $VerbosePreference = "Continue"
+}
+
+# calculate distributionUrl, requires .mvn/wrapper/maven-wrapper.properties
+$distributionUrl = (Get-Content -Raw "$scriptDir/.mvn/wrapper/maven-wrapper.properties" | ConvertFrom-StringData).distributionUrl
+if (!$distributionUrl) {
+  Write-Error "cannot read distributionUrl property in $scriptDir/.mvn/wrapper/maven-wrapper.properties"
+}
+
+switch -wildcard -casesensitive ( $($distributionUrl -replace '^.*/','') ) {
+  "maven-mvnd-*" {
+    $USE_MVND = $true
+    $distributionUrl = $distributionUrl -replace '-bin\.[^.]*$',"-windows-amd64.zip"
+    $MVN_CMD = "mvnd.cmd"
+    break
+  }
+  default {
+    $USE_MVND = $false
+    $MVN_CMD = $script -replace '^mvnw','mvn'
+    break
+  }
+}
+
+# apply MVNW_REPOURL and calculate MAVEN_HOME
+# maven home pattern: ~/.m2/wrapper/dists/{apache-maven-<version>,maven-mvnd-<version>-<platform>}/<hash>
+if ($env:MVNW_REPOURL) {
+  $MVNW_REPO_PATTERN = if ($USE_MVND -eq $False) { "/org/apache/maven/" } else { "/maven/mvnd/" }
+  $distributionUrl = "$env:MVNW_REPOURL$MVNW_REPO_PATTERN$($distributionUrl -replace "^.*$MVNW_REPO_PATTERN",'')"
+}
+$distributionUrlName = $distributionUrl -replace '^.*/',''
+$distributionUrlNameMain = $distributionUrlName -replace '\.[^.]*$','' -replace '-bin$',''
+
+$MAVEN_M2_PATH = "$HOME/.m2"
+if ($env:MAVEN_USER_HOME) {
+  $MAVEN_M2_PATH = "$env:MAVEN_USER_HOME"
+}
+
+if (-not (Test-Path -Path $MAVEN_M2_PATH)) {
+    New-Item -Path $MAVEN_M2_PATH -ItemType Directory | Out-Null
+}
+
+$MAVEN_WRAPPER_DISTS = $null
+if ((Get-Item $MAVEN_M2_PATH).Target[0] -eq $null) {
+  $MAVEN_WRAPPER_DISTS = "$MAVEN_M2_PATH/wrapper/dists"
+} else {
+  $MAVEN_WRAPPER_DISTS = (Get-Item $MAVEN_M2_PATH).Target[0] + "/wrapper/dists"
+}
+
+$MAVEN_HOME_PARENT = "$MAVEN_WRAPPER_DISTS/$distributionUrlNameMain"
+$MAVEN_HOME_NAME = ([System.Security.Cryptography.SHA256]::Create().ComputeHash([byte[]][char[]]$distributionUrl) | ForEach-Object {$_.ToString("x2")}) -join ''
+$MAVEN_HOME = "$MAVEN_HOME_PARENT/$MAVEN_HOME_NAME"
+
+if (Test-Path -Path "$MAVEN_HOME" -PathType Container) {
+  Write-Verbose "found existing MAVEN_HOME at $MAVEN_HOME"
+  Write-Output "MVN_CMD=$MAVEN_HOME/bin/$MVN_CMD"
+  exit $?
+}
+
+if (! $distributionUrlNameMain -or ($distributionUrlName -eq $distributionUrlNameMain)) {
+  Write-Error "distributionUrl is not valid, must end with *-bin.zip, but found $distributionUrl"
+}
+
+# prepare tmp dir
+$TMP_DOWNLOAD_DIR_HOLDER = New-TemporaryFile
+$TMP_DOWNLOAD_DIR = New-Item -Itemtype Directory -Path "$TMP_DOWNLOAD_DIR_HOLDER.dir"
+$TMP_DOWNLOAD_DIR_HOLDER.Delete() | Out-Null
+trap {
+  if ($TMP_DOWNLOAD_DIR.Exists) {
+    try { Remove-Item $TMP_DOWNLOAD_DIR -Recurse -Force | Out-Null }
+    catch { Write-Warning "Cannot remove $TMP_DOWNLOAD_DIR" }
+  }
+}
+
+New-Item -Itemtype Directory -Path "$MAVEN_HOME_PARENT" -Force | Out-Null
+
+# Download and Install Apache Maven
+Write-Verbose "Couldn't find MAVEN_HOME, downloading and installing it ..."
+Write-Verbose "Downloading from: $distributionUrl"
+Write-Verbose "Downloading to: $TMP_DOWNLOAD_DIR/$distributionUrlName"
+
+$webclient = New-Object System.Net.WebClient
+if ($env:MVNW_USERNAME -and $env:MVNW_PASSWORD) {
+  $webclient.Credentials = New-Object System.Net.NetworkCredential($env:MVNW_USERNAME, $env:MVNW_PASSWORD)
+}
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+$webclient.DownloadFile($distributionUrl, "$TMP_DOWNLOAD_DIR/$distributionUrlName") | Out-Null
+
+# If specified, validate the SHA-256 sum of the Maven distribution zip file
+$distributionSha256Sum = (Get-Content -Raw "$scriptDir/.mvn/wrapper/maven-wrapper.properties" | ConvertFrom-StringData).distributionSha256Sum
+if ($distributionSha256Sum) {
+  if ($USE_MVND) {
+    Write-Error "Checksum validation is not supported for maven-mvnd. `nPlease disable validation by removing 'distributionSha256Sum' from your maven-wrapper.properties."
+  }
+  Import-Module $PSHOME\Modules\Microsoft.PowerShell.Utility -Function Get-FileHash
+  if ((Get-FileHash "$TMP_DOWNLOAD_DIR/$distributionUrlName" -Algorithm SHA256).Hash.ToLower() -ne $distributionSha256Sum) {
+    Write-Error "Error: Failed to validate Maven distribution SHA-256, your Maven distribution might be compromised. If you updated your Maven version, you need to update the specified distributionSha256Sum property."
+  }
+}
+
+# unzip and move
+Expand-Archive "$TMP_DOWNLOAD_DIR/$distributionUrlName" -DestinationPath "$TMP_DOWNLOAD_DIR" | Out-Null
+
+# Find the actual extracted directory name (handles snapshots where filename != directory name)
+$actualDistributionDir = ""
+
+# First try the expected directory name (for regular distributions)
+$expectedPath = Join-Path "$TMP_DOWNLOAD_DIR" "$distributionUrlNameMain"
+$expectedMvnPath = Join-Path "$expectedPath" "bin/$MVN_CMD"
+if ((Test-Path -Path $expectedPath -PathType Container) -and (Test-Path -Path $expectedMvnPath -PathType Leaf)) {
+  $actualDistributionDir = $distributionUrlNameMain
+}
+
+# If not found, search for any directory with the Maven executable (for snapshots)
+if (!$actualDistributionDir) {
+  Get-ChildItem -Path "$TMP_DOWNLOAD_DIR" -Directory | ForEach-Object {
+    $testPath = Join-Path $_.FullName "bin/$MVN_CMD"
+    if (Test-Path -Path $testPath -PathType Leaf) {
+      $actualDistributionDir = $_.Name
+    }
+  }
+}
+
+if (!$actualDistributionDir) {
+  Write-Error "Could not find Maven distribution directory in extracted archive"
+}
+
+Write-Verbose "Found extracted Maven distribution directory: $actualDistributionDir"
+Rename-Item -Path "$TMP_DOWNLOAD_DIR/$actualDistributionDir" -NewName $MAVEN_HOME_NAME | Out-Null
+try {
+  Move-Item -Path "$TMP_DOWNLOAD_DIR/$MAVEN_HOME_NAME" -Destination $MAVEN_HOME_PARENT | Out-Null
+} catch {
+  if (! (Test-Path -Path "$MAVEN_HOME" -PathType Container)) {
+    Write-Error "fail to move MAVEN_HOME"
+  }
+} finally {
+  try { Remove-Item $TMP_DOWNLOAD_DIR -Recurse -Force | Out-Null }
+  catch { Write-Warning "Cannot remove $TMP_DOWNLOAD_DIR" }
+}
+
+Write-Output "MVN_CMD=$MAVEN_HOME/bin/$MVN_CMD"
+</file>
+
+<file path="pom.xml">
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>org.springframework.boot</groupId>
+		<artifactId>spring-boot-starter-parent</artifactId>
+		<version>3.3.4</version>
+		<relativePath/>
+	</parent>
+	<groupId>com.proyectoPPI</groupId>
+	<artifactId>proyectodb</artifactId>
+	<version>0.0.1-SNAPSHOT</version>
+	<name>proyectodb</name>
+	<description>Proyecto DB Migrado</description>
+	<properties>
+		<java.version>17</java.version>
+	</properties>
+	<dependencies>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-jdbc</artifactId>
+		</dependency>
+		
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-web</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-devtools</artifactId>
+			<scope>runtime</scope>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>com.microsoft.sqlserver</groupId>
+			<artifactId>mssql-jdbc</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-api</artifactId>
+			<version>0.12.6</version>
+		</dependency>
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-impl</artifactId>
+			<version>0.12.6</version>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>io.jsonwebtoken</groupId>
+			<artifactId>jjwt-jackson</artifactId>
+			<version>0.12.6</version>
+			<scope>runtime</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-crypto</artifactId>
+		</dependency>
+		
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.springframework.boot</groupId>
+				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>3.2.5</version>
+				<configuration>
+					<argLine>-Dnet.bytebuddy.experimental=true</argLine>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+
+</project>
+</file>
+
+<file path="README-MIGRACION.md">
+# ProyectoPPI — backend (proyectodb)
+
+Este proyecto fue generado con Spring Initializr (con Maven Wrapper incluido) y aquí se le
+agregó el código migrado desde el backend original en Node/Express + `mssql`.
+
+## Qué se agregó sobre el esqueleto de Initializr
+
+- **`src/main/resources/application.properties`**: se le agregó la configuración de conexión a
+  SQL Server, el secreto JWT y los datos del usuario administrador, todo leído desde variables
+  de entorno con valores por defecto iguales a los del `.env` original (`DB_USER`/`DB_PASSWORD`
+  en vez de `USER`/`PASSWORD`, ya que `USER` es una variable reservada del sistema operativo).
+- **`pom.xml`**: se agregaron las dependencias `jjwt-api`, `jjwt-impl`, `jjwt-jackson` (JWT) y
+  `spring-security-crypto` (BCrypt), que no están en el catálogo de Initializr.
+- **`src/main/java/com/proyectoPPI/proyectodb/`**:
+  - `controllers/` → `AuthController`, `UsuariosController`, `CursosController`,
+    `LeccionesController` (equivalentes a los controladores de Express).
+  - `security/` → `JwtUtil`, `AuthInterceptor`, `RequireAuth`, `RequireAdmin` (equivalentes a
+    `auth.middleware.js`).
+  - `db/` → `Db` (equivalente a `config/db.js`, con el chequeo de disponibilidad de conexión).
+  - `config/` → `CorsConfig`, `WebConfig`, `GlobalExceptionHandler`.
+  - `ProyectodbApplication.java`: se le agregó un `CommandLineRunner` que verifica la conexión
+    y crea el usuario administrador al arrancar (equivalente a lo que hacía `server.js`).
+
+Las rutas, códigos de estado y JSON de respuesta se mantienen exactamente iguales a los del
+backend original en Node — el frontend en React no necesita ningún cambio.
+
+## Cómo correrlo
+
+1. Copia `.env.example` como referencia y define esas mismas variables en tu entorno (o en el
+   Run Configuration de tu IDE): `DB_USER`, `DB_PASSWORD`, `SERVER`, `DATABASE`, `DB_PORT`,
+   `JWT_SECRET`, `ADMIN_USERNAME`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`, `ADMIN_NOMBRE`,
+   `ADMIN_APELLIDO`, `PORT`.
+2. Como este proyecto trae el Maven Wrapper, no necesitas tener Maven instalado:
+   - Linux/Mac: `./mvnw spring-boot:run`
+   - Windows: `mvnw.cmd spring-boot:run`
+3. El frontend en `ProyectoPPI-Frontend` sigue apuntando al mismo puerto/rutas, sin cambios.
+
+## Nota importante
+
+Este proyecto usa **Spring Boot 4.1.1** (la versión que trajo tu Initializr), un poco más nueva
+que la 3.3.4 que usé en la primera entrega. La API de `JdbcTemplate`, `HandlerInterceptor`,
+`WebMvcConfigurer` y las anotaciones REST usadas aquí no cambiaron entre esas versiones, así que
+el código migrado no tuvo que ajustarse por eso — solo se adaptaron los nombres de starter que
+Initializr ya generó distinto (`spring-boot-starter-webmvc` en vez de `spring-boot-starter-web`).
+
+Como en la entrega anterior, este sandbox no tiene salida a Maven Central, así que no pude
+compilar el proyecto para verificarlo end-to-end. Te recomiendo correr `./mvnw clean package`
+(o `mvnw.cmd clean package` en Windows) antes de darlo por definitivo.
+</file>
+
+<file path="mvnw">
+#!/bin/sh
+# ----------------------------------------------------------------------------
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+# ----------------------------------------------------------------------------
+
+# ----------------------------------------------------------------------------
+# Apache Maven Wrapper startup batch script, version 3.3.4
+#
+# Optional ENV vars
+# -----------------
+#   JAVA_HOME - location of a JDK home dir, required when download maven via java source
+#   MVNW_REPOURL - repo url base for downloading maven distribution
+#   MVNW_USERNAME/MVNW_PASSWORD - user and password for downloading maven
+#   MVNW_VERBOSE - true: enable verbose log; debug: trace the mvnw script; others: silence the output
+# ----------------------------------------------------------------------------
+
+set -euf
+[ "${MVNW_VERBOSE-}" != debug ] || set -x
+
+# OS specific support.
+native_path() { printf %s\\n "$1"; }
+case "$(uname)" in
+CYGWIN* | MINGW*)
+  [ -z "${JAVA_HOME-}" ] || JAVA_HOME="$(cygpath --unix "$JAVA_HOME")"
+  native_path() { cygpath --path --windows "$1"; }
+  ;;
+esac
+
+# set JAVACMD and JAVACCMD
+set_java_home() {
+  # For Cygwin and MinGW, ensure paths are in Unix format before anything is touched
+  if [ -n "${JAVA_HOME-}" ]; then
+    if [ -x "$JAVA_HOME/jre/sh/java" ]; then
+      # IBM's JDK on AIX uses strange locations for the executables
+      JAVACMD="$JAVA_HOME/jre/sh/java"
+      JAVACCMD="$JAVA_HOME/jre/sh/javac"
+    else
+      JAVACMD="$JAVA_HOME/bin/java"
+      JAVACCMD="$JAVA_HOME/bin/javac"
+
+      if [ ! -x "$JAVACMD" ] || [ ! -x "$JAVACCMD" ]; then
+        echo "The JAVA_HOME environment variable is not defined correctly, so mvnw cannot run." >&2
+        echo "JAVA_HOME is set to \"$JAVA_HOME\", but \"\$JAVA_HOME/bin/java\" or \"\$JAVA_HOME/bin/javac\" does not exist." >&2
+        return 1
+      fi
+    fi
+  else
+    JAVACMD="$(
+      'set' +e
+      'unset' -f command 2>/dev/null
+      'command' -v java
+    )" || :
+    JAVACCMD="$(
+      'set' +e
+      'unset' -f command 2>/dev/null
+      'command' -v javac
+    )" || :
+
+    if [ ! -x "${JAVACMD-}" ] || [ ! -x "${JAVACCMD-}" ]; then
+      echo "The java/javac command does not exist in PATH nor is JAVA_HOME set, so mvnw cannot run." >&2
+      return 1
+    fi
+  fi
+}
+
+# hash string like Java String::hashCode
+hash_string() {
+  str="${1:-}" h=0
+  while [ -n "$str" ]; do
+    char="${str%"${str#?}"}"
+    h=$(((h * 31 + $(LC_CTYPE=C printf %d "'$char")) % 4294967296))
+    str="${str#?}"
+  done
+  printf %x\\n $h
+}
+
+verbose() { :; }
+[ "${MVNW_VERBOSE-}" != true ] || verbose() { printf %s\\n "${1-}"; }
+
+die() {
+  printf %s\\n "$1" >&2
+  exit 1
+}
+
+trim() {
+  # MWRAPPER-139:
+  #   Trims trailing and leading whitespace, carriage returns, tabs, and linefeeds.
+  #   Needed for removing poorly interpreted newline sequences when running in more
+  #   exotic environments such as mingw bash on Windows.
+  printf "%s" "${1}" | tr -d '[:space:]'
+}
+
+scriptDir="$(dirname "$0")"
+scriptName="$(basename "$0")"
+
+# parse distributionUrl and optional distributionSha256Sum, requires .mvn/wrapper/maven-wrapper.properties
+while IFS="=" read -r key value; do
+  case "${key-}" in
+  distributionUrl) distributionUrl=$(trim "${value-}") ;;
+  distributionSha256Sum) distributionSha256Sum=$(trim "${value-}") ;;
+  esac
+done <"$scriptDir/.mvn/wrapper/maven-wrapper.properties"
+[ -n "${distributionUrl-}" ] || die "cannot read distributionUrl property in $scriptDir/.mvn/wrapper/maven-wrapper.properties"
+
+case "${distributionUrl##*/}" in
+maven-mvnd-*bin.*)
+  MVN_CMD=mvnd.sh _MVNW_REPO_PATTERN=/maven/mvnd/
+  case "${PROCESSOR_ARCHITECTURE-}${PROCESSOR_ARCHITEW6432-}:$(uname -a)" in
+  *AMD64:CYGWIN* | *AMD64:MINGW*) distributionPlatform=windows-amd64 ;;
+  :Darwin*x86_64) distributionPlatform=darwin-amd64 ;;
+  :Darwin*arm64) distributionPlatform=darwin-aarch64 ;;
+  :Linux*x86_64*) distributionPlatform=linux-amd64 ;;
+  *)
+    echo "Cannot detect native platform for mvnd on $(uname)-$(uname -m), use pure java version" >&2
+    distributionPlatform=linux-amd64
+    ;;
+  esac
+  distributionUrl="${distributionUrl%-bin.*}-$distributionPlatform.zip"
+  ;;
+maven-mvnd-*) MVN_CMD=mvnd.sh _MVNW_REPO_PATTERN=/maven/mvnd/ ;;
+*) MVN_CMD="mvn${scriptName#mvnw}" _MVNW_REPO_PATTERN=/org/apache/maven/ ;;
+esac
+
+# apply MVNW_REPOURL and calculate MAVEN_HOME
+# maven home pattern: ~/.m2/wrapper/dists/{apache-maven-<version>,maven-mvnd-<version>-<platform>}/<hash>
+[ -z "${MVNW_REPOURL-}" ] || distributionUrl="$MVNW_REPOURL$_MVNW_REPO_PATTERN${distributionUrl#*"$_MVNW_REPO_PATTERN"}"
+distributionUrlName="${distributionUrl##*/}"
+distributionUrlNameMain="${distributionUrlName%.*}"
+distributionUrlNameMain="${distributionUrlNameMain%-bin}"
+MAVEN_USER_HOME="${MAVEN_USER_HOME:-${HOME}/.m2}"
+MAVEN_HOME="${MAVEN_USER_HOME}/wrapper/dists/${distributionUrlNameMain-}/$(hash_string "$distributionUrl")"
+
+exec_maven() {
+  unset MVNW_VERBOSE MVNW_USERNAME MVNW_PASSWORD MVNW_REPOURL || :
+  exec "$MAVEN_HOME/bin/$MVN_CMD" "$@" || die "cannot exec $MAVEN_HOME/bin/$MVN_CMD"
+}
+
+if [ -d "$MAVEN_HOME" ]; then
+  verbose "found existing MAVEN_HOME at $MAVEN_HOME"
+  exec_maven "$@"
+fi
+
+case "${distributionUrl-}" in
+*?-bin.zip | *?maven-mvnd-?*-?*.zip) ;;
+*) die "distributionUrl is not valid, must match *-bin.zip or maven-mvnd-*.zip, but found '${distributionUrl-}'" ;;
+esac
+
+# prepare tmp dir
+if TMP_DOWNLOAD_DIR="$(mktemp -d)" && [ -d "$TMP_DOWNLOAD_DIR" ]; then
+  clean() { rm -rf -- "$TMP_DOWNLOAD_DIR"; }
+  trap clean HUP INT TERM EXIT
+else
+  die "cannot create temp dir"
+fi
+
+mkdir -p -- "${MAVEN_HOME%/*}"
+
+# Download and Install Apache Maven
+verbose "Couldn't find MAVEN_HOME, downloading and installing it ..."
+verbose "Downloading from: $distributionUrl"
+verbose "Downloading to: $TMP_DOWNLOAD_DIR/$distributionUrlName"
+
+# select .zip or .tar.gz
+if ! command -v unzip >/dev/null; then
+  distributionUrl="${distributionUrl%.zip}.tar.gz"
+  distributionUrlName="${distributionUrl##*/}"
+fi
+
+# verbose opt
+__MVNW_QUIET_WGET=--quiet __MVNW_QUIET_CURL=--silent __MVNW_QUIET_UNZIP=-q __MVNW_QUIET_TAR=''
+[ "${MVNW_VERBOSE-}" != true ] || __MVNW_QUIET_WGET='' __MVNW_QUIET_CURL='' __MVNW_QUIET_UNZIP='' __MVNW_QUIET_TAR=v
+
+# normalize http auth
+case "${MVNW_PASSWORD:+has-password}" in
+'') MVNW_USERNAME='' MVNW_PASSWORD='' ;;
+has-password) [ -n "${MVNW_USERNAME-}" ] || MVNW_USERNAME='' MVNW_PASSWORD='' ;;
+esac
+
+if [ -z "${MVNW_USERNAME-}" ] && command -v wget >/dev/null; then
+  verbose "Found wget ... using wget"
+  wget ${__MVNW_QUIET_WGET:+"$__MVNW_QUIET_WGET"} "$distributionUrl" -O "$TMP_DOWNLOAD_DIR/$distributionUrlName" || die "wget: Failed to fetch $distributionUrl"
+elif [ -z "${MVNW_USERNAME-}" ] && command -v curl >/dev/null; then
+  verbose "Found curl ... using curl"
+  curl ${__MVNW_QUIET_CURL:+"$__MVNW_QUIET_CURL"} -f -L -o "$TMP_DOWNLOAD_DIR/$distributionUrlName" "$distributionUrl" || die "curl: Failed to fetch $distributionUrl"
+elif set_java_home; then
+  verbose "Falling back to use Java to download"
+  javaSource="$TMP_DOWNLOAD_DIR/Downloader.java"
+  targetZip="$TMP_DOWNLOAD_DIR/$distributionUrlName"
+  cat >"$javaSource" <<-END
+	public class Downloader extends java.net.Authenticator
+	{
+	  protected java.net.PasswordAuthentication getPasswordAuthentication()
+	  {
+	    return new java.net.PasswordAuthentication( System.getenv( "MVNW_USERNAME" ), System.getenv( "MVNW_PASSWORD" ).toCharArray() );
+	  }
+	  public static void main( String[] args ) throws Exception
+	  {
+	    setDefault( new Downloader() );
+	    java.nio.file.Files.copy( java.net.URI.create( args[0] ).toURL().openStream(), java.nio.file.Paths.get( args[1] ).toAbsolutePath().normalize() );
+	  }
+	}
+	END
+  # For Cygwin/MinGW, switch paths to Windows format before running javac and java
+  verbose " - Compiling Downloader.java ..."
+  "$(native_path "$JAVACCMD")" "$(native_path "$javaSource")" || die "Failed to compile Downloader.java"
+  verbose " - Running Downloader.java ..."
+  "$(native_path "$JAVACMD")" -cp "$(native_path "$TMP_DOWNLOAD_DIR")" Downloader "$distributionUrl" "$(native_path "$targetZip")"
+fi
+
+# If specified, validate the SHA-256 sum of the Maven distribution zip file
+if [ -n "${distributionSha256Sum-}" ]; then
+  distributionSha256Result=false
+  if [ "$MVN_CMD" = mvnd.sh ]; then
+    echo "Checksum validation is not supported for maven-mvnd." >&2
+    echo "Please disable validation by removing 'distributionSha256Sum' from your maven-wrapper.properties." >&2
+    exit 1
+  elif command -v sha256sum >/dev/null; then
+    if echo "$distributionSha256Sum  $TMP_DOWNLOAD_DIR/$distributionUrlName" | sha256sum -c - >/dev/null 2>&1; then
+      distributionSha256Result=true
+    fi
+  elif command -v shasum >/dev/null; then
+    if echo "$distributionSha256Sum  $TMP_DOWNLOAD_DIR/$distributionUrlName" | shasum -a 256 -c >/dev/null 2>&1; then
+      distributionSha256Result=true
+    fi
+  else
+    echo "Checksum validation was requested but neither 'sha256sum' or 'shasum' are available." >&2
+    echo "Please install either command, or disable validation by removing 'distributionSha256Sum' from your maven-wrapper.properties." >&2
+    exit 1
+  fi
+  if [ $distributionSha256Result = false ]; then
+    echo "Error: Failed to validate Maven distribution SHA-256, your Maven distribution might be compromised." >&2
+    echo "If you updated your Maven version, you need to update the specified distributionSha256Sum property." >&2
+    exit 1
+  fi
+fi
+
+# unzip and move
+if command -v unzip >/dev/null; then
+  unzip ${__MVNW_QUIET_UNZIP:+"$__MVNW_QUIET_UNZIP"} "$TMP_DOWNLOAD_DIR/$distributionUrlName" -d "$TMP_DOWNLOAD_DIR" || die "failed to unzip"
+else
+  tar xzf${__MVNW_QUIET_TAR:+"$__MVNW_QUIET_TAR"} "$TMP_DOWNLOAD_DIR/$distributionUrlName" -C "$TMP_DOWNLOAD_DIR" || die "failed to untar"
+fi
+
+# Find the actual extracted directory name (handles snapshots where filename != directory name)
+actualDistributionDir=""
+
+# First try the expected directory name (for regular distributions)
+if [ -d "$TMP_DOWNLOAD_DIR/$distributionUrlNameMain" ]; then
+  if [ -f "$TMP_DOWNLOAD_DIR/$distributionUrlNameMain/bin/$MVN_CMD" ]; then
+    actualDistributionDir="$distributionUrlNameMain"
+  fi
+fi
+
+# If not found, search for any directory with the Maven executable (for snapshots)
+if [ -z "$actualDistributionDir" ]; then
+  # enable globbing to iterate over items
+  set +f
+  for dir in "$TMP_DOWNLOAD_DIR"/*; do
+    if [ -d "$dir" ]; then
+      if [ -f "$dir/bin/$MVN_CMD" ]; then
+        actualDistributionDir="$(basename "$dir")"
+        break
+      fi
+    fi
+  done
+  set -f
+fi
+
+if [ -z "$actualDistributionDir" ]; then
+  verbose "Contents of $TMP_DOWNLOAD_DIR:"
+  verbose "$(ls -la "$TMP_DOWNLOAD_DIR")"
+  die "Could not find Maven distribution directory in extracted archive"
+fi
+
+verbose "Found extracted Maven distribution directory: $actualDistributionDir"
+printf %s\\n "$distributionUrl" >"$TMP_DOWNLOAD_DIR/$actualDistributionDir/mvnw.url"
+mv -- "$TMP_DOWNLOAD_DIR/$actualDistributionDir" "$MAVEN_HOME" || [ -d "$MAVEN_HOME" ] || die "fail to move MAVEN_HOME"
+
+clean || :
+exec_maven "$@"
+</file>
+
+<file path="src/test/java/com/proyectoPPI/proyectodb/controllers/CursosControllerTest.java">
+package com.proyectoPPI.proyectodb.controllers;
+
+import com.proyectoPPI.proyectodb.db.Db;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+/**
+ * Pruebas unitarias para CursosController. Cada prueba simula una
+ * respuesta distinta del Db/JdbcTemplate para validar que el controlador
+ * responde el codigo HTTP y el cuerpo correctos segun el dato recibido.
+ */
+class CursosControllerTest {
+
+    private Db db;
+    private JdbcTemplate jdbcTemplate;
+    private CursosController controller;
+
+    @BeforeEach
+    void setUp() {
+        db = mock(Db.class);
+        jdbcTemplate = mock(JdbcTemplate.class);
+        when(db.jdbc()).thenReturn(jdbcTemplate);
+        controller = new CursosController(db);
+    }
+
+    @Test
+    void getCursos_devuelve503SiLaBaseDeDatosNoEstaDisponible() {
+        when(db.isAvailable()).thenReturn(false);
+
+        ResponseEntity<?> respuesta = controller.getCursos();
+
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(503);
+    }
+
+    @Test
+    void getCursos_devuelve200ConLaListaDeCursosPublicados() {
+        when(db.isAvailable()).thenReturn(true);
+        when(jdbcTemplate.queryForList(anyString())).thenReturn(List.of(Map.of("CursoID", 1)));
+
+        ResponseEntity<?> respuesta = controller.getCursos();
+
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(200);
+        assertThat((List<?>) respuesta.getBody()).hasSize(1);
+    }
+
+    @Test
+    void getCursos_devuelve500SiOcurreUnaExcepcion() {
+        when(db.isAvailable()).thenReturn(true);
+        when(jdbcTemplate.queryForList(anyString())).thenThrow(new RuntimeException("error sql"));
+
+        ResponseEntity<?> respuesta = controller.getCursos();
+
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(500);
+    }
+
+    @Test
+    void getAllCursos_devuelve200ConTodosLosCursosSinFiltrar() {
+        when(db.isAvailable()).thenReturn(true);
+        when(jdbcTemplate.queryForList(anyString()))
+                .thenReturn(List.of(Map.of("CursoID", 1), Map.of("CursoID", 2)));
+
+        ResponseEntity<?> respuesta = controller.getAllCursos();
+
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(200);
+        assertThat((List<?>) respuesta.getBody()).hasSize(2);
+    }
+
+    @Test
+    void getCursoById_devuelve404SiNoExiste() {
+        when(db.isAvailable()).thenReturn(true);
+        when(jdbcTemplate.queryForList(anyString(), eq(99))).thenReturn(List.of());
+
+        ResponseEntity<?> respuesta = controller.getCursoById(99);
+
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(404);
+    }
+
+    @Test
+    void getCursoById_devuelve200SiElCursoExiste() {
+        when(db.isAvailable()).thenReturn(true);
+        when(jdbcTemplate.queryForList(anyString(), eq(1)))
+                .thenReturn(List.of(Map.of("CursoID", 1, "Titulo", "Java")));
+
+        ResponseEntity<?> respuesta = controller.getCursoById(1);
+
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(200);
+    }
+
+    @Test
+    void createCurso_devuelve400SiFaltaElTitulo() {
+        ResponseEntity<?> respuesta = controller.createCurso(Map.of("InstructorID", 1));
+
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(400);
+    }
+
+    @Test
+    void createCurso_devuelve400SiFaltaElInstructorID() {
+        ResponseEntity<?> respuesta = controller.createCurso(Map.of("Titulo", "Java Basico"));
+
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(400);
+    }
+
+    @Test
+    void createCurso_devuelve201YElIdGeneradoConDatosValidos() {
+        when(db.isAvailable()).thenReturn(true);
+        when(jdbcTemplate.queryForObject(anyString(), eq(Integer.class), any(Object[].class)))
+                .thenReturn(10);
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("Titulo", "Java Basico");
+        body.put("InstructorID", 1);
+
+        ResponseEntity<?> respuesta = controller.createCurso(body);
+
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(201);
+        Map<?, ?> cuerpo = (Map<?, ?>) respuesta.getBody();
+        assertThat(cuerpo.get("CursoID")).isEqualTo(10);
+    }
+
+    @Test
+    void createCurso_devuelve503SiLaBaseDeDatosNoEstaDisponible() {
+        when(db.isAvailable()).thenReturn(false);
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("Titulo", "Java Basico");
+        body.put("InstructorID", 1);
+
+        ResponseEntity<?> respuesta = controller.createCurso(body);
+
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(503);
+    }
+
+    @Test
+    void getLeccionesByCurso_devuelve404SiElCursoNoExiste() {
+        when(db.isAvailable()).thenReturn(true);
+        when(jdbcTemplate.queryForList(anyString(), eq(5))).thenReturn(List.of());
+
+        ResponseEntity<?> respuesta = controller.getLeccionesByCurso(5);
+
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(404);
+    }
+
+    @Test
+    void getLeccionesByCurso_devuelve403SiElCursoEstaInactivo() {
+        when(db.isAvailable()).thenReturn(true);
+        Map<String, Object> curso = new HashMap<>();
+        curso.put("CursoID", 5);
+        curso.put("Activo", false);
+        when(jdbcTemplate.queryForList(anyString(), eq(5))).thenReturn(List.of(curso));
+
+        ResponseEntity<?> respuesta = controller.getLeccionesByCurso(5);
+
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(403);
+    }
+
+    @Test
+    void getLeccionesByCurso_devuelve200ConCursoYLeccionesCuandoElCursoEstaActivo() {
+        when(db.isAvailable()).thenReturn(true);
+        Map<String, Object> curso = new HashMap<>();
+        curso.put("CursoID", 5);
+        curso.put("Activo", true);
+        when(jdbcTemplate.queryForList(anyString(), eq(5)))
+                .thenReturn(List.of(curso))
+                .thenReturn(List.of());
+
+        ResponseEntity<?> respuesta = controller.getLeccionesByCurso(5);
+
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(200);
+        
+        @SuppressWarnings("unchecked")
+        Map<String, ?> cuerpo = (Map<String, ?>) respuesta.getBody();
+        assertThat(cuerpo).containsKeys("curso", "lecciones");
+    }
+
+    @Test
+    void deleteCurso_devuelve404SiNoExiste() {
+        when(db.isAvailable()).thenReturn(true);
+        when(jdbcTemplate.update(anyString(), eq(123))).thenReturn(0);
+
+        ResponseEntity<?> respuesta = controller.deleteCurso(123);
+
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(404);
+    }
+
+    @Test
+    void deleteCurso_devuelve200SiSeEliminoCorrectamente() {
+        when(db.isAvailable()).thenReturn(true);
+        when(jdbcTemplate.update(anyString(), eq(1))).thenReturn(1);
+
+        ResponseEntity<?> respuesta = controller.deleteCurso(1);
+
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(200);
+    }
+}
+</file>
+
+<file path="src/test/java/com/proyectoPPI/proyectodb/controllers/LeccionesControllerTest.java">
+package com.proyectoPPI.proyectodb.controllers;
+
+import com.proyectoPPI.proyectodb.db.Db;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+/**
+ * Pruebas unitarias para LeccionesController: valida los distintos
+ * codigos de respuesta y el parseo del campo JSON "Preguntas" segun el
+ * dato que retorna la base de datos (simulada).
+ */
+class LeccionesControllerTest {
+
+    private Db db;
+    private JdbcTemplate jdbcTemplate;
+    private LeccionesController controller;
+
+    @BeforeEach
+    void setUp() {
+        db = mock(Db.class);
+        jdbcTemplate = mock(JdbcTemplate.class);
+        when(db.jdbc()).thenReturn(jdbcTemplate);
+        controller = new LeccionesController(db);
+    }
+
+    @Test
+    void getLecciones_devuelve503SiLaBaseDeDatosNoEstaDisponible() {
+        when(db.isAvailable()).thenReturn(false);
+
+        ResponseEntity<?> respuesta = controller.getLecciones();
+
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(503);
+    }
+
+    @Test
+    void getLeccionById_devuelve404SiNoExiste() {
+        when(db.isAvailable()).thenReturn(true);
+        when(jdbcTemplate.queryForList(anyString(), eq(99))).thenReturn(List.of());
+
+        ResponseEntity<?> respuesta = controller.getLeccionById(99);
+
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(404);
+    }
+
+    @Test
+    void getLeccionById_devuelve200SiExiste() {
+        when(db.isAvailable()).thenReturn(true);
+        Map<String, Object> leccion = new HashMap<>();
+        leccion.put("LeccionID", 1);
+        leccion.put("Preguntas", null);
+        when(jdbcTemplate.queryForList(anyString(), eq(1))).thenReturn(List.of(leccion));
+
+        ResponseEntity<?> respuesta = controller.getLeccionById(1);
+
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(200);
+    }
+
+    @Test
+    void createLeccion_devuelve400SiFaltanCamposRequeridos() throws Exception {
+        ResponseEntity<?> respuesta = controller.createLeccion(Map.of("Titulo", "Intro"));
+
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(400);
+    }
+
+    @Test
+    void updateLeccion_devuelve400SiFaltanCamposRequeridos() throws Exception {
+        ResponseEntity<?> respuesta = controller.updateLeccion(1, Map.of("Titulo", "Solo titulo"));
+
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(400);
+    }
+
+    @Test
+    void updateLeccion_devuelve404SiLaLeccionNoExiste() throws Exception {
+        when(db.isAvailable()).thenReturn(true);
+        when(jdbcTemplate.queryForList(anyString(), eq(1))).thenReturn(List.of());
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("Titulo", "Nuevo titulo");
+        body.put("Tipo", "practica");
+
+        ResponseEntity<?> respuesta = controller.updateLeccion(1, body);
+
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(404);
+    }
+
+    @Test
+    void updateLeccion_devuelve200SiSeActualizoCorrectamente() throws Exception {
+        when(db.isAvailable()).thenReturn(true);
+        when(jdbcTemplate.queryForList(anyString(), eq(1))).thenReturn(List.of(Map.of("LeccionID", 1)));
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("Titulo", "Nuevo titulo");
+        body.put("Tipo", "practica");
+
+        ResponseEntity<?> respuesta = controller.updateLeccion(1, body);
+
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(200);
+    }
+
+    @Test
+    void deleteLeccion_devuelve404SiNoExiste() {
+        when(db.isAvailable()).thenReturn(true);
+        when(jdbcTemplate.update(anyString(), eq(1))).thenReturn(0);
+
+        ResponseEntity<?> respuesta = controller.deleteLeccion(1);
+
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(404);
+    }
+
+    @Test
+    void deleteLeccion_devuelve200SiSeEliminoCorrectamente() {
+        when(db.isAvailable()).thenReturn(true);
+        when(jdbcTemplate.update(anyString(), eq(1))).thenReturn(1);
+
+        ResponseEntity<?> respuesta = controller.deleteLeccion(1);
+
+        assertThat(respuesta.getStatusCode().value()).isEqualTo(200);
+    }
+}
+</file>
+
+</files>

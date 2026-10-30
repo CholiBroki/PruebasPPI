@@ -52,6 +52,23 @@ public class CursosController {
         }
     }
 
+    // NUEVO: busca cursos publicados cuyo titulo contenga el texto recibido
+    @GetMapping("/buscar")
+    public ResponseEntity<?> buscarPorTitulo(@RequestParam("titulo") String titulo) {
+        if (titulo == null || titulo.isBlank()) {
+            return ResponseEntity.status(400).body(Map.of("error", "El titulo es requerido"));
+        }
+        try {
+            if (!db.isAvailable()) return ResponseEntity.status(503).body(Map.of("error", "Base de datos no disponible"));
+            List<Map<String, Object>> rows = db.jdbc().queryForList(
+                    "SELECT " + CURSO_COLUMNS + " FROM Cursos WHERE EstaPublicado = 1 AND Titulo LIKE ? ORDER BY FechaCreacion DESC",
+                    "%" + titulo.trim() + "%");
+            return ResponseEntity.ok(rows);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("error", String.valueOf(e.getMessage())));
+        }
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<?> getCursoById(@PathVariable int id) {
         try {
